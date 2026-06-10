@@ -3,11 +3,18 @@
 import { useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 
+interface SelectedCustomizationOption {
+  groupName: string;
+  optionName: string;
+  price: number;
+}
+
 interface OrderItem {
   _id: string;
   name: string;
   price: number;
   quantity: number;
+  selectedCustomizations?: SelectedCustomizationOption[];
 }
 
 interface Order {
@@ -102,11 +109,18 @@ export default function AdminOrdersPage() {
                 <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2 border-b border-zinc-100 pb-1">Items</h3>
                 <ul className="divide-y divide-zinc-100">
                   {order.items.map((item, idx) => (
-                    <li key={idx} className="flex justify-between text-xs py-1.5">
-                      <span className="text-zinc-800">
-                        <span className="text-zinc-400 font-semibold mr-1.5">{item.quantity}x</span>
-                        {item.name}
-                      </span>
+                    <li key={idx} className="py-1.5 flex flex-col gap-0.5">
+                      <div className="flex justify-between text-xs text-zinc-800">
+                        <span>
+                          <span className="text-zinc-400 font-semibold mr-1.5">{item.quantity}x</span>
+                          {item.name}
+                        </span>
+                      </div>
+                      {item.selectedCustomizations && item.selectedCustomizations.length > 0 && (
+                        <div className="text-[10px] text-zinc-400 pl-5 leading-normal">
+                          {item.selectedCustomizations.map(c => `${c.optionName} (+$${c.price})`).join(', ')}
+                        </div>
+                      )}
                     </li>
                   ))}
                 </ul>

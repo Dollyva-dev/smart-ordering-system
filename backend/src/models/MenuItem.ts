@@ -1,5 +1,18 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
+export interface ICustomizationOption {
+  name: string;
+  price: number;
+}
+
+export interface ICustomizationGroup {
+  name: string;
+  required: boolean;
+  minSelect: number;
+  maxSelect: number;
+  options: ICustomizationOption[];
+}
+
 export interface IMenuItem extends Document {
   name: string;
   description: string;
@@ -7,7 +20,21 @@ export interface IMenuItem extends Document {
   category: string;
   imageUrl?: string;
   isAvailable: boolean;
+  customizationGroups: ICustomizationGroup[];
 }
+
+const CustomizationOptionSchema = new Schema({
+  name: { type: String, required: true },
+  price: { type: Number, required: true, default: 0 }
+});
+
+const CustomizationGroupSchema = new Schema({
+  name: { type: String, required: true },
+  required: { type: Boolean, default: false },
+  minSelect: { type: Number, default: 0 },
+  maxSelect: { type: Number, default: 1 },
+  options: [CustomizationOptionSchema]
+});
 
 const MenuItemSchema: Schema = new Schema(
   {
@@ -17,8 +44,10 @@ const MenuItemSchema: Schema = new Schema(
     category: { type: String, required: true },
     imageUrl: { type: String, required: false },
     isAvailable: { type: Boolean, default: true },
+    customizationGroups: { type: [CustomizationGroupSchema], default: [] }
   },
   { timestamps: true }
 );
 
 export default mongoose.model<IMenuItem>('MenuItem', MenuItemSchema);
+
