@@ -33,30 +33,35 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (!mounted || !token) return null; // Prevent hydration mismatch and hide content until auth checked
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
+    <div className="min-h-screen bg-zinc-50 flex flex-col md:flex-row">
       {/* Sidebar */}
-      <aside className="w-full md:w-64 bg-slate-900 text-white flex flex-col shadow-xl z-10">
+      <aside className="w-full md:w-60 bg-white border-b md:border-b-0 md:border-r border-zinc-200 flex flex-col z-10">
         <div className="p-6">
-          <h1 className="text-2xl font-black text-amber-500 tracking-tight">Dollyva Admin</h1>
+          <h1 className="text-sm font-bold tracking-widest text-zinc-900 uppercase">Dollyva</h1>
+          <p className="text-[10px] text-zinc-400 uppercase tracking-wider mt-0.5">Admin Portal</p>
         </div>
-        <nav className="flex-1 px-4 space-y-2">
+        <nav className="flex-1 px-3 space-y-1">
           {navItems.map(item => {
             const isActive = pathname.startsWith(item.path);
             return (
               <Link 
                 key={item.path} 
                 href={item.path}
-                className={`block px-4 py-3 rounded-xl font-medium transition-colors ${isActive ? 'bg-amber-500 text-slate-900' : 'text-slate-300 hover:bg-slate-800 hover:text-white'}`}
+                className={`block px-4 py-2 text-sm font-medium transition-all ${
+                  isActive 
+                    ? 'bg-zinc-50 text-zinc-900 border-l-2 border-zinc-900 font-semibold' 
+                    : 'text-zinc-500 hover:bg-zinc-50/50 hover:text-zinc-900 border-l-2 border-transparent'
+                }`}
               >
                 {item.name}
               </Link>
             );
           })}
         </nav>
-        <div className="p-4 mt-auto">
+        <div className="p-4 border-t border-zinc-200">
           <button 
             onClick={handleLogout}
-            className="w-full text-left px-4 py-3 text-slate-400 hover:text-red-400 font-medium transition-colors flex items-center gap-2"
+            className="w-full text-left px-4 py-2 text-sm font-medium text-zinc-500 hover:text-red-600 transition-colors flex items-center gap-2 border-l-2 border-transparent cursor-pointer"
           >
             Sign Out
           </button>
@@ -64,7 +69,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-6 md:p-10 max-h-screen overflow-y-auto">
+      <main className="flex-1 p-6 md:p-8 max-h-screen overflow-y-auto bg-white">
         {children}
       </main>
     </div>

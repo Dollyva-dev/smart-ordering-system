@@ -56,49 +56,56 @@ export default function AdminSettingsPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <h1 className="text-3xl font-black text-slate-900 mb-8">Admin Settings</h1>
+    <div className="max-w-xl mx-auto">
+      <div className="mb-6 pb-4 border-b border-zinc-100">
+        <h1 className="text-xl font-bold tracking-tight text-zinc-900">Admin Settings</h1>
+        <p className="text-xs text-zinc-400 mt-0.5">Modify administrator credentials and settings</p>
+      </div>
 
-      <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-100">
-        <h2 className="text-xl font-bold text-slate-800 mb-6">Update Credentials</h2>
+      <div className="bg-white p-6 rounded-md border border-zinc-200">
+        <h2 className="text-sm font-bold text-zinc-900 uppercase tracking-wider mb-5">Update Credentials</h2>
         
         {status && (
-          <div className={`p-4 rounded-xl mb-6 font-semibold ${status.type === 'error' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>
+          <div className={`px-3 py-2 rounded-md mb-5 text-xs font-semibold border ${
+            status.type === 'error' 
+              ? 'bg-red-50 border-red-200 text-red-700' 
+              : 'bg-green-50 border-green-200 text-green-705'
+          }`}>
             {status.message}
           </div>
         )}
 
-        <form onSubmit={handleUpdate} className="space-y-5">
+        <form onSubmit={handleUpdate} className="space-y-4">
           <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2">Username</label>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-550 mb-1.5">Username</label>
             <input 
               type="text" 
               required
               value={newUsername}
               onChange={e => setNewUsername(e.target.value)}
-              className="w-full bg-white text-slate-900 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none"
+              className="w-full bg-white text-zinc-900 border border-zinc-200 rounded-md px-3 py-1.5 text-sm focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 outline-none transition-all"
             />
           </div>
           
-          <div className="pt-4 border-t border-slate-100">
-            <label className="block text-sm font-bold text-slate-700 mb-2">New Password (Optional)</label>
+          <div className="pt-3 border-t border-zinc-100">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-550 mb-1.5">New Password (Optional)</label>
             <input 
               type="password" 
               value={newPassword}
               onChange={e => setNewPassword(e.target.value)}
-              className="w-full bg-white text-slate-900 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none"
+              className="w-full bg-white text-zinc-900 border border-zinc-200 rounded-md px-3 py-1.5 text-sm focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 outline-none transition-all"
               placeholder="Leave blank to keep current password"
             />
           </div>
 
-          <div className="pt-4 border-t border-slate-100">
-            <label className="block text-sm font-bold text-slate-700 mb-2">Current Password (Required to save)</label>
+          <div className="pt-3 border-t border-zinc-100">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-550 mb-1.5">Current Password (Required to save)</label>
             <input 
               type="password" 
               required
               value={currentPassword}
               onChange={e => setCurrentPassword(e.target.value)}
-              className="w-full bg-white text-slate-900 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none"
+              className="w-full bg-white text-zinc-900 border border-zinc-200 rounded-md px-3 py-1.5 text-sm focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 outline-none transition-all"
               placeholder="Enter current password to confirm changes"
             />
           </div>
@@ -106,7 +113,7 @@ export default function AdminSettingsPage() {
           <button 
             type="submit" 
             disabled={loading}
-            className="w-full bg-slate-900 text-white font-black py-4 rounded-xl hover:bg-amber-500 transition-colors shadow-lg active:scale-95 disabled:opacity-70 disabled:active:scale-100 mt-6"
+            className="w-full bg-zinc-900 text-white text-xs font-semibold py-2.5 rounded-md hover:bg-zinc-800 transition-colors cursor-pointer mt-2 disabled:opacity-70 disabled:cursor-not-allowed"
           >
             {loading ? 'Saving...' : 'Save Settings'}
           </button>
@@ -115,3 +122,4 @@ export default function AdminSettingsPage() {
     </div>
   );
 }
+

@@ -69,58 +69,59 @@ export default function AdminTablesPage() {
 
   return (
     <div>
-      <h1 className="text-3xl font-black text-slate-900 mb-8">Table Management</h1>
+      <div className="mb-6 pb-4 border-b border-zinc-100">
+        <h1 className="text-xl font-bold tracking-tight text-zinc-900">Table Management</h1>
+        <p className="text-xs text-zinc-400 mt-0.5">Manage tables and download dynamically generated QR codes</p>
+      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Add Table Form */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 h-fit sticky top-10">
-          <h2 className="text-xl font-bold text-slate-800 mb-4">Add New Table</h2>
+        <div className="bg-white p-5 rounded-md border border-zinc-200 h-fit sticky top-6">
+          <h2 className="text-sm font-bold text-zinc-900 uppercase tracking-wider mb-4">Add New Table</h2>
           <form onSubmit={handleAddTable} className="space-y-4">
             {error && (
-              <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm font-medium">
+              <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md text-xs font-semibold">
                 {error}
               </div>
             )}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Table Identifier (Number/Name)</label>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1.5">Table Identifier</label>
               <input 
                 required 
                 value={tableNumber} 
                 onChange={e => setTableNumber(e.target.value)} 
                 type="text" 
                 placeholder="e.g. 10 or Patio-1"
-                className="w-full bg-white text-slate-900 border border-slate-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none" 
+                className="w-full bg-white text-zinc-900 border border-zinc-200 rounded-md px-3 py-1.5 text-sm focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 outline-none transition-all placeholder:text-zinc-400" 
               />
             </div>
-            <button type="submit" className="w-full bg-slate-900 text-white font-bold py-3 rounded-lg hover:bg-amber-500 transition-colors">
+            <button type="submit" className="w-full bg-zinc-900 text-white text-xs font-semibold py-2.5 rounded-md hover:bg-zinc-800 transition-colors cursor-pointer mt-2">
               Create Table & QR Code
             </button>
           </form>
         </div>
 
         {/* Tables Grid */}
-        <div className="lg:col-span-2 space-y-4">
-          <h2 className="text-xl font-bold text-slate-800 mb-4">Active Tables</h2>
+        <div className="lg:col-span-2 space-y-3">
+          <h2 className="text-sm font-bold text-zinc-400 uppercase tracking-wider mb-4">Active Tables</h2>
           {loading ? (
-            <div className="animate-pulse flex space-x-4">
-              <div className="flex-1 space-y-4 py-1">
-                <div className="h-20 bg-slate-200 rounded-xl"></div>
-                <div className="h-20 bg-slate-200 rounded-xl"></div>
-              </div>
+            <div className="animate-pulse space-y-3">
+              <div className="h-20 bg-zinc-100 border border-zinc-200 rounded-md"></div>
+              <div className="h-20 bg-zinc-100 border border-zinc-200 rounded-md"></div>
             </div>
           ) : tables.length === 0 ? (
-            <div className="text-center bg-white p-8 rounded-2xl border border-dashed border-slate-300">
-              <p className="text-slate-500">No tables added yet.</p>
+            <div className="text-center bg-zinc-50 py-16 rounded-md border border-dashed border-zinc-250">
+              <p className="text-zinc-400 text-sm">No tables added yet.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {tables.map(table => (
-                <div key={table._id} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center text-center">
-                  <h3 className="font-black text-2xl text-slate-900 mb-2">Table {table.tableNumber}</h3>
-                  <div className="bg-white p-2 rounded-xl shadow-sm border border-slate-100 mb-4 inline-block">
+                <div key={table._id} className="bg-white p-5 rounded-md border border-zinc-200 flex flex-col items-center text-center hover:border-zinc-300 transition-all">
+                  <h3 className="font-bold text-base text-zinc-900 mb-2">Table {table.tableNumber}</h3>
+                  <div className="bg-white p-2 rounded-md border border-zinc-150 mb-3 inline-block">
                     <QRCodeSVG 
                       value={table.qrCodeUrl} 
-                      size={150}
+                      size={140}
                       level="H"
                       includeMargin={true}
                     />
@@ -129,13 +130,13 @@ export default function AdminTablesPage() {
                     href={table.qrCodeUrl} 
                     target="_blank" 
                     rel="noreferrer"
-                    className="text-amber-600 font-medium text-sm hover:underline mb-4 break-all max-w-full"
+                    className="text-zinc-400 font-mono text-[10px] hover:text-zinc-950 hover:underline mb-4 break-all max-w-full"
                   >
                     {table.qrCodeUrl}
                   </a>
                   <button 
                     onClick={() => handleDeleteTable(table._id)}
-                    className="w-full px-4 py-2 rounded-lg text-sm font-bold bg-red-50 text-red-600 hover:bg-red-100 transition-colors mt-auto"
+                    className="w-full px-3 py-1.5 rounded-md text-xs font-semibold border border-red-100 text-red-655 hover:bg-red-50 transition-colors mt-auto cursor-pointer"
                   >
                     Delete Table
                   </button>
@@ -148,3 +149,4 @@ export default function AdminTablesPage() {
     </div>
   );
 }
+
