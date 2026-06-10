@@ -40,7 +40,7 @@ router.put('/settings', async (req, res) => {
     return;
   }
 
-  const token = authHeader.split(' ')[1];
+  const token = authHeader.split(' ')[1] as string;
   try {
     const decoded: any = jwt.verify(token, JWT_SECRET);
     const { newUsername, newPassword, currentPassword } = req.body;

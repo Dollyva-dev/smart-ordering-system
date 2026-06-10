@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, use } from 'react';
 import { useCartStore } from '@/store/cartStore';
 
 interface MenuItem {
@@ -13,14 +13,14 @@ interface MenuItem {
   isAvailable: boolean;
 }
 
-export default function TableMenuPage({ params }: { params: { id: string } }) {
+export default function TableMenuPage({ params }: { params: Promise<{ id: string }> }) {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
   const { items, addItem, updateQuantity, removeItem, getTotal, clearCart } = useCartStore();
   const [orderStatus, setOrderStatus] = useState<string | null>(null);
   
-  // Unwrap params if it's a promise (Next.js 15+ async params handling workaround, assuming standard props here)
-  const tableId = params.id;
+  // Unwrap params
+  const { id: tableId } = use(params);
 
   useEffect(() => {
     fetch('http://localhost:5000/api/menu')
