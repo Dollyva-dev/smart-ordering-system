@@ -1,7 +1,37 @@
 import express from 'express';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 import MenuItem from '../models/MenuItem';
 
 const router = express.Router();
+
+// Configure storage for file uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = path.join(__dirname, '../../public/uploads');
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ storage });
+
+// File upload endpoint
+router.post('/upload', upload.single('image'), (req, res) => {
+  if (!req.file) {
+     res.status(400).json({ message: 'No file uploaded' });
+     return;
+  }
+  const fileUrl = `http://localhost:5000/uploads/${req.file.filename}`;
+  res.json({ imageUrl: fileUrl });
+});
 
 // Get all menu items
 router.get('/', async (req, res) => {
@@ -21,6 +51,7 @@ router.post('/', async (req, res) => {
     price: req.body.price,
     category: req.body.category,
     imageUrl: req.body.imageUrl,
+    customizationGroups: req.body.customizationGroups || []
   });
 
   try {
@@ -60,3 +91,4 @@ router.delete('/:id', async (req, res) => {
 });
 
 export default router;
+

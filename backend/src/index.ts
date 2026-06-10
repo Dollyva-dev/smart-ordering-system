@@ -27,9 +27,13 @@ const io = new Server(server, {
   }
 });
 
+import path from 'path';
+
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
+
 
 // Make io accessible to routes
 app.set('io', io);

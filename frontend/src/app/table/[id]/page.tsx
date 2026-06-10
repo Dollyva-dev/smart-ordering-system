@@ -1,7 +1,20 @@
 "use client";
 
 import { useEffect, useState, use } from 'react';
-import { useCartStore } from '@/store/cartStore';
+import { useCartStore, SelectedCustomizationOption } from '@/store/cartStore';
+
+interface CustomizationOption {
+  name: string;
+  price: number;
+}
+
+interface CustomizationGroup {
+  name: string;
+  required: boolean;
+  minSelect: number;
+  maxSelect: number;
+  options: CustomizationOption[];
+}
 
 interface MenuItem {
   _id: string;
@@ -11,6 +24,7 @@ interface MenuItem {
   category: string;
   imageUrl?: string;
   isAvailable: boolean;
+  customizationGroups?: CustomizationGroup[];
 }
 
 export default function TableMenuPage({ params }: { params: Promise<{ id: string }> }) {
@@ -19,6 +33,10 @@ export default function TableMenuPage({ params }: { params: Promise<{ id: string
   const { items, addItem, updateQuantity, removeItem, getTotal, clearCart } = useCartStore();
   const [orderStatus, setOrderStatus] = useState<string | null>(null);
   
+  // Customization modal state
+  const [activeCustomizationItem, setActiveCustomizationItem] = useState<MenuItem | null>(null);
+  const [selectedOptions, setSelectedOptions] = useState<{ [groupName: string]: SelectedCustomizationOption[] }>({});
+
   // Unwrap params
   const { id: tableId } = use(params);
 
@@ -49,7 +67,8 @@ export default function TableMenuPage({ params }: { params: Promise<{ id: string
             menuItem: i._id,
             name: i.name,
             price: i.price,
-            quantity: i.quantity
+            quantity: i.quantity,
+            selectedCustomizations: i.selectedCustomizations
           })),
           totalAmount: getTotal()
         })
@@ -66,6 +85,108 @@ export default function TableMenuPage({ params }: { params: Promise<{ id: string
       console.error(err);
       setOrderStatus('error');
     }
+  };
+
+  const handleAddClick = (item: MenuItem) => {
+    if (item.customizationGroups && item.customizationGroups.length > 0) {
+      setActiveCustomizationItem(item);
+      // Initialize selected options with empty arrays or defaults
+      const initial: { [groupName: string]: SelectedCustomizationOption[] } = {};
+      item.customizationGroups.forEach(g => {
+        if (g.required && g.maxSelect === 1 && g.options.length > 0) {
+          // Auto select first option for required single-selects
+          initial[g.name] = [{
+            groupName: g.name,
+            optionName: g.options[0].name,
+            price: g.options[0].price
+          }];
+        } else {
+          initial[g.name] = [];
+        }
+      });
+      setSelectedOptions(initial);
+    } else {
+      addItem({
+        _id: item._id,
+        name: item.name,
+        price: item.price,
+        selectedCustomizations: []
+      });
+    }
+  };
+
+  const handleOptionToggle = (group: CustomizationGroup, option: CustomizationOption) => {
+    const currentList = selectedOptions[group.name] || [];
+    const isChecked = currentList.some(o => o.optionName === option.name);
+
+    if (group.maxSelect === 1) {
+      // Single select (radio behavior)
+      if (isChecked && !group.required) {
+        setSelectedOptions(prev => ({ ...prev, [group.name]: [] }));
+      } else {
+        setSelectedOptions(prev => ({
+          ...prev,
+          [group.name]: [{ groupName: group.name, optionName: option.name, price: option.price }]
+        }));
+      }
+    } else {
+      // Multi select (checkbox behavior)
+      if (isChecked) {
+        setSelectedOptions(prev => ({
+          ...prev,
+          [group.name]: currentList.filter(o => o.optionName !== option.name)
+        }));
+      } else {
+        if (currentList.length < group.maxSelect) {
+          setSelectedOptions(prev => ({
+            ...prev,
+            [group.name]: [...currentList, { groupName: group.name, optionName: option.name, price: option.price }]
+          }));
+        }
+      }
+    }
+  };
+
+  const getCustomizationPrice = () => {
+    let total = 0;
+    Object.values(selectedOptions).forEach(list => {
+      list.forEach(o => {
+        total += o.price;
+      });
+    });
+    return total;
+  };
+
+  const isAddDisabled = () => {
+    if (!activeCustomizationItem) return true;
+    // Check if all required groups have minimum selection satisfied
+    for (const group of activeCustomizationItem.customizationGroups || []) {
+      if (group.required) {
+        const selections = selectedOptions[group.name] || [];
+        if (selections.length < group.minSelect) {
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+
+  const handleConfirmAdd = () => {
+    if (!activeCustomizationItem || isAddDisabled()) return;
+
+    const flatCustomizations: SelectedCustomizationOption[] = [];
+    Object.values(selectedOptions).forEach(list => {
+      flatCustomizations.push(...list);
+    });
+
+    addItem({
+      _id: activeCustomizationItem._id,
+      name: activeCustomizationItem.name,
+      price: activeCustomizationItem.price,
+      selectedCustomizations: flatCustomizations
+    });
+
+    setActiveCustomizationItem(null);
   };
 
   const categories = Array.from(new Set(menuItems.map(item => item.category)));
@@ -104,30 +225,43 @@ export default function TableMenuPage({ params }: { params: Promise<{ id: string
         
         {categories.map(category => (
           <div key={category} className="mb-8">
-            <h2 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-4 pb-1.5 border-b border-zinc-205">
+            <h2 className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-4 pb-1.5 border-b border-zinc-200">
               {category}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {menuItems.filter(item => item.category === category).map(item => (
-                <div key={item._id} className="bg-white rounded-md p-4 border border-zinc-200 hover:border-zinc-350 transition-all flex flex-col justify-between group">
-                  <div className="mb-4">
-                    <div className="flex justify-between items-start mb-1">
-                      <h3 className="font-semibold text-sm text-zinc-800 transition-colors">{item.name}</h3>
-                      <span className="font-semibold text-sm text-zinc-900">${item.price.toFixed(2)}</span>
+                <div key={item._id} className="bg-white rounded-md p-4 border border-zinc-200 hover:border-zinc-300 transition-all flex justify-between gap-4 group">
+                  <div className="flex-1 flex flex-col justify-between">
+                    <div>
+                      <h3 className="font-semibold text-sm text-zinc-800 transition-colors group-hover:text-zinc-900 mb-1">{item.name}</h3>
+                      <p className="text-zinc-550 text-xs line-clamp-2 leading-relaxed mb-3">{item.description}</p>
                     </div>
-                    <p className="text-zinc-500 text-xs line-clamp-2 leading-relaxed">{item.description}</p>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-sm text-zinc-900">${item.price.toFixed(2)}</span>
+                      {item.customizationGroups && item.customizationGroups.length > 0 && (
+                        <span className="text-[9px] font-semibold uppercase tracking-wider text-zinc-400 bg-zinc-50 border border-zinc-200 px-1 rounded-sm">Customizable</span>
+                      )}
+                    </div>
                   </div>
-                  <button 
-                    onClick={() => addItem(item)}
-                    disabled={!item.isAvailable}
-                    className={`w-full py-2 rounded-md text-xs font-semibold transition-all cursor-pointer ${
-                      item.isAvailable 
-                        ? 'bg-zinc-900 text-white hover:bg-zinc-850 active:scale-[0.98]' 
-                        : 'border border-zinc-200 bg-zinc-55 text-zinc-400 cursor-not-allowed'
-                    }`}
-                  >
-                    {item.isAvailable ? 'Add to Cart' : 'Sold Out'}
-                  </button>
+                  
+                  <div className="flex flex-col items-center gap-2 flex-shrink-0">
+                    {item.imageUrl ? (
+                      <img src={item.imageUrl} alt={item.name} className="w-20 h-20 md:w-24 md:h-24 object-cover rounded-md border border-zinc-150" />
+                    ) : (
+                      <div className="w-20 h-20 md:w-24 md:h-24 bg-zinc-50 border border-dashed border-zinc-200 rounded-md flex items-center justify-center text-[10px] text-zinc-400">No Image</div>
+                    )}
+                    <button 
+                      onClick={() => handleAddClick(item)}
+                      disabled={!item.isAvailable}
+                      className={`w-full py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+                        item.isAvailable 
+                          ? 'bg-zinc-900 text-white hover:bg-zinc-850 active:scale-[0.98]' 
+                          : 'border border-zinc-200 bg-zinc-50 text-zinc-400 cursor-not-allowed'
+                      }`}
+                    >
+                      {item.isAvailable ? 'Add' : 'Sold Out'}
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -135,27 +269,117 @@ export default function TableMenuPage({ params }: { params: Promise<{ id: string
         ))}
       </main>
 
+      {/* Customization Modal */}
+      {activeCustomizationItem && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
+          <div className="bg-white w-full max-w-md border border-zinc-200 rounded-md p-6 max-h-[85vh] flex flex-col shadow-lg">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h2 className="text-base font-bold text-zinc-900">{activeCustomizationItem.name}</h2>
+                <p className="text-xs text-zinc-500 mt-0.5 leading-relaxed">{activeCustomizationItem.description}</p>
+              </div>
+              <button 
+                onClick={() => setActiveCustomizationItem(null)} 
+                className="text-zinc-400 hover:text-zinc-900 font-bold text-sm cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {activeCustomizationItem.imageUrl && (
+              <img 
+                src={activeCustomizationItem.imageUrl} 
+                alt={activeCustomizationItem.name} 
+                className="w-full h-36 object-cover rounded-md border border-zinc-150 mb-4 flex-shrink-0" 
+              />
+            )}
+
+            <div className="flex-1 overflow-y-auto space-y-5 pr-1 py-1">
+              {(activeCustomizationItem.customizationGroups || []).map(group => {
+                const selections = selectedOptions[group.name] || [];
+                return (
+                  <div key={group.name} className="border-t border-zinc-100 pt-4 first:border-0 first:pt-0">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-xs font-bold uppercase tracking-wider text-zinc-700">{group.name}</span>
+                      {group.required ? (
+                        <span className="text-[9px] font-bold text-red-600 uppercase bg-red-50 px-1.5 py-0.5 rounded-sm">Required</span>
+                      ) : (
+                        <span className="text-[9px] font-medium text-zinc-450 uppercase bg-zinc-50 px-1.5 py-0.5 rounded-sm">Optional</span>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-zinc-400 mb-3">
+                      {group.maxSelect === 1 ? 'Select 1 option' : `Select up to ${group.maxSelect} options`}
+                    </p>
+                    <div className="space-y-2">
+                      {group.options.map(option => {
+                        const isChecked = selections.some(o => o.optionName === option.name);
+                        return (
+                          <label 
+                            key={option.name} 
+                            onClick={() => handleOptionToggle(group, option)}
+                            className="flex justify-between items-center py-2 px-3 border border-zinc-150 hover:border-zinc-300 rounded-md cursor-pointer text-xs transition-colors"
+                          >
+                            <div className="flex items-center gap-2">
+                              <input 
+                                type={group.maxSelect === 1 ? "radio" : "checkbox"} 
+                                name={group.name} 
+                                checked={isChecked}
+                                onChange={() => {}} // Handle dynamically in label onClick
+                                className="accent-zinc-900 border-zinc-300 w-3.5 h-3.5"
+                              />
+                              <span className="text-zinc-800 font-medium">{option.name}</span>
+                            </div>
+                            {option.price > 0 && (
+                              <span className="text-zinc-500 font-semibold">+${option.price.toFixed(2)}</span>
+                            )}
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="pt-4 border-t border-zinc-100 mt-4 flex flex-col gap-2">
+              <button 
+                onClick={handleConfirmAdd}
+                disabled={isAddDisabled()}
+                className="w-full bg-zinc-900 text-white hover:bg-zinc-800 text-xs font-semibold py-2.5 rounded-md transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-center"
+              >
+                Add to Order — ${(activeCustomizationItem.price + getCustomizationPrice()).toFixed(2)}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Sticky Bottom Cart Bar */}
       {items.length > 0 && (
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-zinc-200 p-4 z-20">
           <div className="max-w-4xl mx-auto">
             <div className="mb-3 max-h-48 overflow-y-auto pr-2">
               {items.map(item => (
-                <div key={item._id} className="flex justify-between items-center py-2 border-b border-zinc-100 last:border-0">
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-zinc-800">{item.name}</p>
-                    <p className="text-xs text-zinc-400">${item.price.toFixed(2)} x {item.quantity}</p>
+                <div key={item.cartId} className="flex justify-between items-center py-2.5 border-b border-zinc-100 last:border-0">
+                  <div className="flex-1 pr-4">
+                    <p className="text-sm font-semibold text-zinc-850">{item.name}</p>
+                    {item.selectedCustomizations && item.selectedCustomizations.length > 0 && (
+                      <p className="text-[10px] text-zinc-400 mt-0.5 leading-relaxed font-medium">
+                        {item.selectedCustomizations.map(c => `${c.optionName} (+$${c.price})`).join(', ')}
+                      </p>
+                    )}
+                    <p className="text-[11px] text-zinc-400 mt-1">${item.price.toFixed(2)} x {item.quantity}</p>
                   </div>
                   <div className="flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-md p-0.5">
                     <button 
-                      onClick={() => item.quantity > 1 ? updateQuantity(item._id, item.quantity - 1) : removeItem(item._id)} 
+                      onClick={() => item.quantity > 1 ? updateQuantity(item.cartId, item.quantity - 1) : removeItem(item.cartId)} 
                       className="w-6 h-6 flex items-center justify-center bg-white rounded border border-zinc-150 text-zinc-650 hover:bg-zinc-50 text-xs font-bold transition-colors cursor-pointer"
                     >
                       -
                     </button>
                     <span className="font-semibold text-xs w-5 text-center text-zinc-850">{item.quantity}</span>
                     <button 
-                      onClick={() => updateQuantity(item._id, item.quantity + 1)} 
+                      onClick={() => updateQuantity(item.cartId, item.quantity + 1)} 
                       className="w-6 h-6 flex items-center justify-center bg-white rounded border border-zinc-150 text-zinc-650 hover:bg-zinc-50 text-xs font-bold transition-colors cursor-pointer"
                     >
                       +
@@ -183,4 +407,5 @@ export default function TableMenuPage({ params }: { params: Promise<{ id: string
     </div>
   );
 }
+
 
