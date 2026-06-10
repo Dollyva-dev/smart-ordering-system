@@ -1,15 +1,36 @@
 "use client";
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useAuthStore } from '@/store/authStore';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { token, logout } = useAuthStore();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    if (!token) {
+      router.push('/login');
+    }
+  }, [token, router]);
 
   const navItems = [
     { name: 'Live Orders', path: '/admin/orders' },
-    { name: 'Menu Management', path: '/admin/menu' }
+    { name: 'Menu Management', path: '/admin/menu' },
+    { name: 'Table Management', path: '/admin/tables' },
+    { name: 'Settings', path: '/admin/settings' }
   ];
+
+  const handleLogout = () => {
+    logout();
+    router.push('/login');
+  };
+
+  if (!mounted || !token) return null; // Prevent hydration mismatch and hide content until auth checked
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
@@ -32,6 +53,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             );
           })}
         </nav>
+        <div className="p-4 mt-auto">
+          <button 
+            onClick={handleLogout}
+            className="w-full text-left px-4 py-3 text-slate-400 hover:text-red-400 font-medium transition-colors flex items-center gap-2"
+          >
+            Sign Out
+          </button>
+        </div>
       </aside>
 
       {/* Main Content */}

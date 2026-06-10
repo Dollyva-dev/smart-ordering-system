@@ -7,12 +7,17 @@ import dotenv from 'dotenv';
 
 import menuRoutes from './routes/menu';
 import orderRoutes from './routes/orders';
+import tableRoutes from './routes/tables';
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
+
+import authRoutes from './routes/auth';
+import Admin from './models/Admin';
+import bcrypt from 'bcryptjs';
 
 // Setup Socket.IO
 const io = new Server(server, {
@@ -32,6 +37,8 @@ app.set('io', io);
 // Routes
 app.use('/api/menu', menuRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/tables', tableRoutes);
+app.use('/api/auth', authRoutes);
 
 // Basic Route
 app.get('/', (req, res) => {
@@ -47,14 +54,30 @@ io.on('connection', (socket) => {
   });
 });
 
+// Seed default admin
+const seedAdmin = async () => {
+  try {
+    const adminCount = await Admin.countDocuments();
+    if (adminCount === 0) {
+      const salt = await bcrypt.genSalt(10);
+      const passwordHash = await bcrypt.hash('admin123', salt);
+      await Admin.create({ username: 'admin', passwordHash });
+      console.log('Default admin created (admin / admin123)');
+    }
+  } catch (err) {
+    console.error('Failed to seed admin:', err);
+  }
+};
+
 // MongoDB Connection and Server Start
 const PORT = process.env.PORT || 5000;
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/smart-ordering';
+const MONGODB_URI = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/smart-ordering';
 
 mongoose
   .connect(MONGODB_URI)
   .then(() => {
     console.log('Connected to MongoDB');
+    seedAdmin();
     server.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);
     });
