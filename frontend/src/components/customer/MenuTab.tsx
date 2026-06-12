@@ -140,7 +140,7 @@ export function MenuTab({
           </div>
           <button 
             onClick={() => setIsFilterModalOpen(true)}
-            className="bg-white border border-[#E0E6DF] rounded-2xl px-3.5 flex items-center justify-center text-[#2E6F40] shadow-sm hover:bg-[#F2F6F3] transition-colors relative"
+            className="bg-white border border-[#E0E6DF] rounded-xl px-3.5 flex items-center justify-center text-[#2E6F40] shadow-sm hover:bg-[#F2F6F3] transition-colors relative"
           >
             <Icons.Filter />
             {(priceRange !== 'All' || dietaryFilter.length > 0 || sortBy !== 'Recommended') && (
@@ -157,7 +157,7 @@ export function MenuTab({
             <div 
               ref={sliderRef}
               onScroll={handleScroll}
-              className="flex overflow-x-auto snap-x snap-mandatory scrollbar-none rounded-3xl shadow-md bg-zinc-200"
+              className="flex overflow-x-auto snap-x snap-mandatory scrollbar-none rounded-2xl shadow-md bg-zinc-200"
             >
               {sortedFeatured.map((item) => {
                 const discount = item.discountPercent || 0;
@@ -289,8 +289,8 @@ export function MenuTab({
       {isFilterModalOpen && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-200">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsFilterModalOpen(false)}></div>
-          <div className="relative w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col max-h-[90vh] animate-in slide-in-from-bottom-full duration-300">
-            <div className="p-5 border-b border-[#E0E6DF] flex justify-between items-center bg-[#FAF9F5] rounded-t-3xl sm:rounded-t-3xl">
+          <div className="relative w-full max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[90vh] animate-in slide-in-from-bottom-full duration-300">
+            <div className="p-5 border-b border-[#E0E6DF] flex justify-between items-center bg-[#FAF9F5] rounded-t-2xl sm:rounded-t-2xl">
               <h2 className="text-lg font-black text-[#1A2F1C]">Filters & Sorting</h2>
               <button onClick={() => setIsFilterModalOpen(false)} className="w-8 h-8 flex items-center justify-center bg-white rounded-full text-[#6B7A68] shadow-sm font-bold">
                 ✕

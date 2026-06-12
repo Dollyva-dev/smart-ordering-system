@@ -29,7 +29,7 @@ export function ProductView({
   const isGF = item.dietaryPreferences?.includes('Gluten-Free');
 
   return (
-    <div className="fixed inset-x-0 top-0 bottom-16 z-[45] bg-white flex flex-col shadow-[0_-10px_40px_rgba(0,0,0,0.1)] animate-in slide-in-from-bottom-8 fade-in duration-300 overflow-hidden md:bottom-0 md:rounded-b-[30px]">
+    <div className="fixed inset-x-0 top-0 bottom-16 z-[45] bg-white flex flex-col shadow-[0_-10px_40px_rgba(0,0,0,0.1)] animate-in slide-in-from-bottom-8 fade-in duration-300 overflow-hidden md:bottom-0 md:rounded-b-2xl">
       
       {/* Hero Image Section */}
       <div className="relative w-full h-[35vh] flex-shrink-0 bg-zinc-100">
@@ -58,7 +58,7 @@ export function ProductView({
       </div>
 
       {/* Product Details & Scrollable Customizations */}
-      <div className="flex-1 overflow-y-auto px-5 pb-24 scrollbar-none bg-white -mt-6 rounded-t-3xl relative z-10">
+      <div className="flex-1 overflow-y-auto px-5 pb-24 scrollbar-none bg-white -mt-6 rounded-t-2xl relative z-10">
         
         <div className="pt-6 pb-5 border-b border-[#E0E6DF]">
           <div className="flex justify-between items-start gap-4">
@@ -155,7 +155,7 @@ export function ProductView({
             handleConfirmAdd();
             onClose();
           }}
-          className={`w-full py-4 rounded-2xl text-base font-black uppercase tracking-wider flex justify-between items-center px-6 transition-all shadow-md active:scale-[0.98] ${
+          className={`w-full py-4 rounded-xl text-base font-black uppercase tracking-wider flex justify-between items-center px-6 transition-all shadow-md active:scale-[0.98] ${
             isAddDisabled() 
               ? 'bg-zinc-200 text-zinc-400 border border-zinc-200 cursor-not-allowed shadow-none' 
               : 'bg-[#2E6F40] text-white border border-[#1D4A2A] hover:bg-[#1D4A2A] hover:shadow-lg'

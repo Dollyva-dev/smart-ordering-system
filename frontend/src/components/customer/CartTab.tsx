@@ -35,7 +35,7 @@ export function CartTab({
       <p className="text-[#6B7A68] text-xs font-semibold mb-6">Review items and place your order below.</p>
 
       {items.length === 0 ? (
-        <div className="flex-1 py-16 flex flex-col items-center justify-center text-center bg-white border border-[#E0E6DF] rounded-3xl p-6 shadow-sm">
+        <div className="flex-1 py-16 flex flex-col items-center justify-center text-center bg-white border border-[#E0E6DF] rounded-2xl p-6 shadow-sm">
           <div className="w-16 h-16 bg-[#E8F5E9] text-[#2E6F40] rounded-full flex items-center justify-center mb-4">
             <Icons.Cart />
           </div>
@@ -52,13 +52,13 @@ export function CartTab({
         <div className="space-y-4">
           {/* Cart Success / Error Messages */}
           {orderStatus === 'success' && (
-            <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-850 rounded-2xl font-bold text-center text-xs shadow-sm flex items-center justify-center gap-2 animate-bounce">
+            <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-850 rounded-xl font-bold text-center text-xs shadow-sm flex items-center justify-center gap-2 animate-bounce">
               🎉 Order placed! Preparing your meal now...
             </div>
           )}
 
           {orderStatus === 'error' && (
-            <div className="p-3.5 bg-red-50 border border-red-200 text-red-800 rounded-2xl font-bold text-center text-xs shadow-sm flex items-center justify-center gap-2">
+            <div className="p-3.5 bg-red-50 border border-red-200 text-red-800 rounded-xl font-bold text-center text-xs shadow-sm flex items-center justify-center gap-2">
               ⚠️ Failed to send order. Please notify wait staff.
             </div>
           )}
@@ -66,10 +66,10 @@ export function CartTab({
           {/* Cart Items List */}
           <div className="space-y-3">
             {items.map(item => (
-              <div key={item.cartId} className="bg-white rounded-[24px] border border-[#E0E6DF] p-3 shadow-sm flex gap-3.5 items-stretch relative overflow-hidden">
+              <div key={item.cartId} className="bg-white rounded-xl border border-[#E0E6DF] p-3 shadow-sm flex gap-3.5 items-stretch relative overflow-hidden">
                 
                 {/* Item Image */}
-                <div className="w-20 h-20 shrink-0 rounded-[18px] bg-[#FAF9F5] overflow-hidden border border-[#E0E6DF]">
+                <div className="w-20 h-20 shrink-0 rounded-lg bg-[#FAF9F5] overflow-hidden border border-[#E0E6DF]">
                   {item.imageUrl ? (
                     <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
                   ) : (
@@ -98,17 +98,17 @@ export function CartTab({
                 </div>
                 
                 {/* Vertical Quantity Controls */}
-                <div className="flex flex-col items-center bg-[#F2F8F3] border border-[#C8E6C9] rounded-2xl p-1 justify-between shrink-0">
+                <div className="flex flex-col items-center bg-[#F2F8F3] border border-[#C8E6C9] rounded-lg p-1 justify-between shrink-0">
                   <button 
                     onClick={() => updateQuantity(item.cartId, item.quantity + 1)} 
-                    className="w-7 h-7 flex items-center justify-center bg-white text-[#2E6F40] rounded-xl font-black hover:bg-[#E8F5E9] shadow-[0_2px_4px_rgba(0,0,0,0.05)] text-sm cursor-pointer transition-transform active:scale-90"
+                    className="w-7 h-7 flex items-center justify-center bg-white text-[#2E6F40] rounded-md font-black hover:bg-[#E8F5E9] shadow-[0_2px_4px_rgba(0,0,0,0.05)] text-sm cursor-pointer transition-transform active:scale-90"
                   >
                     <Icons.Plus />
                   </button>
                   <span className="font-extrabold text-xs py-1 text-center text-[#2E6F40]">{item.quantity}</span>
                   <button 
                     onClick={() => item.quantity > 1 ? updateQuantity(item.cartId, item.quantity - 1) : removeItem(item.cartId)} 
-                    className="w-7 h-7 flex items-center justify-center bg-white text-[#2E6F40] rounded-xl font-black hover:bg-[#E8F5E9] shadow-[0_2px_4px_rgba(0,0,0,0.05)] text-sm cursor-pointer transition-transform active:scale-90"
+                    className="w-7 h-7 flex items-center justify-center bg-white text-[#2E6F40] rounded-md font-black hover:bg-[#E8F5E9] shadow-[0_2px_4px_rgba(0,0,0,0.05)] text-sm cursor-pointer transition-transform active:scale-90"
                   >
                     <Icons.Minus />
                   </button>
@@ -118,7 +118,7 @@ export function CartTab({
           </div>
 
           {/* Kitchen Special Instructions / Order Notes */}
-          <div className="bg-white rounded-3xl border border-[#E0E6DF] p-4 shadow-sm">
+          <div className="bg-white rounded-xl border border-[#E0E6DF] p-4 shadow-sm">
             <div className="flex items-center gap-2 mb-2 text-[#556B2F] font-bold text-xs">
               <Icons.Notes />
               <span>Special Instructions</span>
@@ -127,12 +127,12 @@ export function CartTab({
               placeholder="E.g., No spicy toppings, sauce on the side, extra ice, etc."
               value={orderNotes}
               onChange={(e) => setOrderNotes(e.target.value)}
-              className="w-full text-xs text-[#1A2F1C] bg-[#FAF9F5] border border-[#E0E6DF] rounded-xl p-3.5 focus:outline-none focus:border-[#2E6F40] placeholder-[#8A9B86] min-h-[70px] resize-none font-medium"
+              className="w-full text-xs text-[#1A2F1C] bg-[#FAF9F5] border border-[#E0E6DF] rounded-lg p-3.5 focus:outline-none focus:border-[#2E6F40] placeholder-[#8A9B86] min-h-[70px] resize-none font-medium"
             />
           </div>
 
           {/* Order Bill Summary */}
-          <div className="bg-white rounded-3xl border border-[#E0E6DF] p-5 shadow-sm space-y-2.5">
+          <div className="bg-white rounded-xl border border-[#E0E6DF] p-5 shadow-sm space-y-2.5">
             <div className="flex justify-between text-xs text-[#6B7A68] font-semibold">
               <span>Subtotal</span>
               <span>${getTotal().toFixed(2)}</span>
@@ -151,21 +151,28 @@ export function CartTab({
             </div>
           </div>
 
-          {/* Checkout Button */}
-          <button 
-            onClick={handlePlaceOrder}
-            disabled={orderStatus === 'submitting' || items.length === 0}
-            className="w-full bg-[#2E6F40] hover:bg-[#1D4A2A] disabled:bg-zinc-350 text-white py-3.5 rounded-2xl font-extrabold text-xs.5 tracking-wider uppercase transition-all duration-200 shadow-md shadow-[#2E6F40]/25 active:scale-[0.98] disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer mt-4"
-          >
-            {orderStatus === 'submitting' ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
-                Placing Order...
-              </>
-            ) : (
-              `Place Order — $${(getTotal() * 1.1).toFixed(2)}`
-            )}
-          </button>
+          {/* Spacer so the last items aren't hidden behind the fixed button */}
+          <div className="h-20 shrink-0"></div>
+
+          {/* Checkout Button - Fixed Bottom */}
+          <div className="fixed bottom-16 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-[#E0E6DF] p-4 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-30 pb-[env(safe-area-inset-bottom)]">
+            <button 
+              onClick={handlePlaceOrder}
+              disabled={orderStatus === 'submitting' || items.length === 0}
+              className={`w-full py-4 rounded-xl text-sm font-black uppercase tracking-wider flex justify-center items-center shadow-md active:scale-[0.98] transition-all cursor-pointer ${
+                orderStatus === 'submitting' ? 'bg-zinc-400 cursor-not-allowed' : 'bg-[#2E6F40] hover:bg-[#1D4A2A]'
+              } text-white shadow-[#2E6F40]/25`}
+            >
+              {orderStatus === 'submitting' ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin mr-2"></div>
+                  Placing Order...
+                </>
+              ) : (
+                `Place Order — $${(getTotal() * 1.1).toFixed(2)}`
+              )}
+            </button>
+          </div>
         </div>
       )}
     </div>

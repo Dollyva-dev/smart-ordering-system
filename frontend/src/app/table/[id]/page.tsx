@@ -356,7 +356,7 @@ export default function TableMenuPage({ params }: { params: Promise<{ id: string
 
   return (
     <div className="h-[100dvh] bg-[#FAF9F5] md:bg-zinc-100 flex justify-center py-0 md:py-6 antialiased">
-      <div className="w-full max-w-md bg-[#FAF9F5] h-full md:min-h-[85vh] md:max-h-[92vh] md:rounded-[40px] md:shadow-2xl flex flex-col relative overflow-hidden border-0 md:border-[10px] md:border-zinc-800">
+      <div className="w-full max-w-md bg-[#FAF9F5] h-full md:min-h-[85vh] md:max-h-[92vh] md:rounded-3xl md:shadow-2xl flex flex-col relative overflow-hidden border-0 md:border-[10px] md:border-zinc-800">
         
         <Header 
           tableId={tableId}
