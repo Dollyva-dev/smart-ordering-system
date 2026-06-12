@@ -151,23 +151,28 @@ export function CartTab({
             </div>
           </div>
 
-          {/* Checkout Button */}
-          <button 
-            onClick={handlePlaceOrder}
-            disabled={orderStatus === 'submitting' || items.length === 0}
-            className={`w-full py-4 rounded-xl text-sm font-black uppercase tracking-wider flex justify-center items-center shadow-md active:scale-[0.98] transition-all cursor-pointer ${
-              orderStatus === 'submitting' ? 'bg-zinc-400 cursor-not-allowed' : 'bg-[#2E6F40] hover:bg-[#1D4A2A]'
-            } text-white shadow-md shadow-[#2E6F40]/25`}
-          >
-            {orderStatus === 'submitting' ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
-                Placing Order...
-              </>
-            ) : (
-              `Place Order — $${(getTotal() * 1.1).toFixed(2)}`
-            )}
-          </button>
+          {/* Spacer so the last items aren't hidden behind the fixed button */}
+          <div className="h-20 shrink-0"></div>
+
+          {/* Checkout Button - Fixed Bottom */}
+          <div className="fixed bottom-16 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-[#E0E6DF] p-4 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-30 pb-[env(safe-area-inset-bottom)]">
+            <button 
+              onClick={handlePlaceOrder}
+              disabled={orderStatus === 'submitting' || items.length === 0}
+              className={`w-full py-4 rounded-xl text-sm font-black uppercase tracking-wider flex justify-center items-center shadow-md active:scale-[0.98] transition-all cursor-pointer ${
+                orderStatus === 'submitting' ? 'bg-zinc-400 cursor-not-allowed' : 'bg-[#2E6F40] hover:bg-[#1D4A2A]'
+              } text-white shadow-[#2E6F40]/25`}
+            >
+              {orderStatus === 'submitting' ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin mr-2"></div>
+                  Placing Order...
+                </>
+              ) : (
+                `Place Order — $${(getTotal() * 1.1).toFixed(2)}`
+              )}
+            </button>
+          </div>
         </div>
       )}
     </div>
