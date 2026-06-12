@@ -59,6 +59,7 @@ export default function AdminOrdersPage() {
   const [isFloorsLoading, setIsFloorsLoading] = useState(true);
 
   const [selectedTableLabel, setSelectedTableLabel] = useState<string | null>(null);
+  const [isDrawerVisible, setIsDrawerVisible] = useState(false);
   const svgRef = useRef<SVGSVGElement>(null);
 
   // Orders fetching and sockets
@@ -123,6 +124,12 @@ export default function AdminOrdersPage() {
 
   const handleTableClick = (label: string) => {
     setSelectedTableLabel(label);
+    setTimeout(() => setIsDrawerVisible(true), 10);
+  };
+
+  const closeTableDrawer = () => {
+    setIsDrawerVisible(false);
+    setTimeout(() => setSelectedTableLabel(null), 300);
   };
 
   return (
@@ -296,11 +303,11 @@ export default function AdminOrdersPage() {
       {/* --- Sidebar Popup for Table Orders --- */}
       {selectedTableLabel !== null && viewMode === 'map' && (
         <div 
-          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex justify-end transition-opacity"
-          onClick={() => setSelectedTableLabel(null)}
+          className={`fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex justify-end transition-opacity duration-300 ${isDrawerVisible ? 'opacity-100' : 'opacity-0'}`}
+          onClick={() => closeTableDrawer()}
         >
           <div 
-            className="w-full max-w-md bg-zinc-50 h-full shadow-2xl flex flex-col animate-in slide-in-from-right transform transition-transform duration-300 border-l border-zinc-200"
+            className={`w-full max-w-md bg-zinc-50 h-full shadow-2xl flex flex-col transform transition-transform duration-300 border-l border-zinc-200 ${isDrawerVisible ? 'translate-x-0' : 'translate-x-full'}`}
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-200 bg-white shrink-0">
@@ -308,7 +315,7 @@ export default function AdminOrdersPage() {
                 Table {selectedTableLabel}
               </h2>
               <button 
-                onClick={() => setSelectedTableLabel(null)}
+                onClick={() => closeTableDrawer()}
                 className="text-zinc-400 hover:text-zinc-800 transition-colors p-1.5 rounded-md hover:bg-zinc-100 cursor-pointer"
               >
                 <X size={20} strokeWidth={2.5} />
@@ -387,11 +394,10 @@ function OrderTicket({ order, onUpdate }: { order: Order, onUpdate: (id: string,
         <ul className="space-y-3">
           {order.items.map((item, idx) => (
             <li key={idx} className="flex items-start gap-3">
-              <span className="flex-shrink-0 flex items-center justify-center bg-zinc-50 border border-zinc-200 text-zinc-600 text-[11px] font-semibold h-5 w-5 rounded-sm mt-0.5">
-                {item.quantity}
-              </span>
               <div className="flex flex-col">
-                <span className="text-sm font-medium text-zinc-800 leading-tight">{item.name}</span>
+                <span className="text-sm font-medium text-zinc-800 leading-tight">
+                  {item.name} <span className="text-zinc-500 font-bold ml-1 text-xs">x{item.quantity}</span>
+                </span>
                 {item.selectedCustomizations && item.selectedCustomizations.length > 0 && (
                   <span className="text-xs text-zinc-500 mt-1">
                     {item.selectedCustomizations.map(c => c.optionName).join(', ')}

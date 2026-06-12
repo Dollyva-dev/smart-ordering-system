@@ -21,6 +21,11 @@ export interface IMenuItem extends Document {
   imageUrl?: string;
   isAvailable: boolean;
   customizationGroups: ICustomizationGroup[];
+  isFeatured: boolean;
+  featuredPosition?: number;
+  featuredBadge?: string;
+  discountPercent?: number;
+  dietaryPreferences?: string[];
 }
 
 const CustomizationOptionSchema = new Schema({
@@ -44,7 +49,12 @@ const MenuItemSchema: Schema = new Schema(
     category: { type: String, required: true },
     imageUrl: { type: String, required: false },
     isAvailable: { type: Boolean, default: true },
-    customizationGroups: { type: [CustomizationGroupSchema], default: [] }
+    customizationGroups: { type: [CustomizationGroupSchema], default: [] },
+    isFeatured: { type: Boolean, default: false },
+    featuredPosition: { type: Number, default: null },
+    featuredBadge: { type: String, default: null },
+    discountPercent: { type: Number, default: 0 },
+    dietaryPreferences: { type: [String], default: [] }
   },
   { timestamps: true }
 );

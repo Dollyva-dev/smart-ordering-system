@@ -51,7 +51,12 @@ router.post('/', async (req, res) => {
     price: req.body.price,
     category: req.body.category,
     imageUrl: req.body.imageUrl,
-    customizationGroups: req.body.customizationGroups || []
+    customizationGroups: req.body.customizationGroups || [],
+    isFeatured: req.body.isFeatured || false,
+    featuredPosition: req.body.featuredPosition || null,
+    featuredBadge: req.body.featuredBadge || null,
+    discountPercent: req.body.discountPercent || 0,
+    dietaryPreferences: req.body.dietaryPreferences || []
   });
 
   try {
