@@ -40,7 +40,7 @@ export function MenuItemCard({
 
   return (
     <div 
-      className="bg-white rounded-2xl border border-[#E0E6DF] overflow-hidden flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300 relative group cursor-pointer"
+      className="bg-white rounded-xl border border-[#E0E6DF] overflow-hidden flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300 relative group cursor-pointer"
       onClick={() => handleOpenProduct(item)}
     >
       {/* Top: 50% Height Product Image */}
