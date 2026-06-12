@@ -8,6 +8,7 @@ import dotenv from 'dotenv';
 import menuRoutes from './routes/menu';
 import orderRoutes from './routes/orders';
 import tableRoutes from './routes/tables';
+import floorPlanRoutes from './routes/floorplan';
 
 // Load environment variables
 dotenv.config();
@@ -43,6 +44,7 @@ app.use('/api/menu', menuRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/tables', tableRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/floorplan', floorPlanRoutes);
 
 // Basic Route
 app.get('/', (req, res) => {
