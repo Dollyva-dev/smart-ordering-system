@@ -1,6 +1,17 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import { 
+  Plus, 
+  X, 
+  Image as ImageIcon, 
+  Trash2, 
+  CheckCircle2, 
+  Ban, 
+  Search, 
+  ChevronDown,
+  Layers
+} from 'lucide-react';
 
 interface CustomizationOption {
   name: string;
@@ -52,6 +63,7 @@ const RESTAURANT_CATEGORIES = [
 export default function AdminMenuPage() {
   const [items, setItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   // Form State
   const [name, setName] = useState('');
@@ -76,6 +88,16 @@ export default function AdminMenuPage() {
     fetchItems();
   }, []);
 
+  // Prevent background scroll when drawer is open
+  useEffect(() => {
+    if (isDrawerOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => { document.body.style.overflow = 'unset'; };
+  }, [isDrawerOpen]);
+
   const fetchItems = async () => {
     try {
       const res = await fetch('http://localhost:5000/api/menu');
@@ -93,7 +115,7 @@ export default function AdminMenuPage() {
     if (file) {
       setImageFile(file);
       setImagePreviewUrl(URL.createObjectURL(file));
-      setImageUrl(''); // Clear manual URL if file selected
+      setImageUrl(''); 
     }
   };
 
@@ -113,7 +135,6 @@ export default function AdminMenuPage() {
         const data = await res.json();
         return data.imageUrl || '';
       }
-      console.error('Upload failed');
       return '';
     } catch (err) {
       console.error('Error uploading image:', err);
@@ -169,13 +190,24 @@ export default function AdminMenuPage() {
     );
   };
 
+  const resetForm = () => {
+    setName('');
+    setDescription('');
+    setPrice('');
+    setCategory('');
+    setImageFile(null);
+    setImagePreviewUrl('');
+    setImageUrl('');
+    setCustomizationGroups([]);
+    setDropdownOpen(false);
+    setIsDrawerOpen(false);
+  };
+
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // 1. Upload image first if present
       const finalImageUrl = await uploadImage();
 
-      // 2. Format option groups
       const formattedGroups = customizationGroups.map(g => ({
         name: g.name,
         required: g.required,
@@ -187,7 +219,6 @@ export default function AdminMenuPage() {
         }))
       }));
 
-      // 3. Post to api
       const res = await fetch('http://localhost:5000/api/menu', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -201,14 +232,7 @@ export default function AdminMenuPage() {
         })
       });
       if (res.ok) {
-        setName('');
-        setDescription('');
-        setPrice('');
-        setCategory('');
-        setImageFile(null);
-        setImagePreviewUrl('');
-        setImageUrl('');
-        setCustomizationGroups([]);
+        resetForm();
         fetchItems();
       }
     } catch (err) {
@@ -240,315 +264,418 @@ export default function AdminMenuPage() {
   };
 
   return (
-    <div>
-      <div className="mb-6 pb-4 border-b border-zinc-100">
-        <h1 className="text-xl font-bold tracking-tight text-zinc-900">Menu Management</h1>
-        <p className="text-xs text-zinc-400 mt-0.5">Add, edit, or remove dishes from the digital menu</p>
+    <div className="h-full flex flex-col max-w-7xl mx-auto relative">
+      
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 pb-6 border-b border-zinc-200 gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">Menu Items</h1>
+          <p className="text-sm text-zinc-500 mt-1">Manage your restaurant catalog and offerings</p>
+        </div>
+        <button 
+          onClick={() => setIsDrawerOpen(true)}
+          className="flex items-center gap-2 bg-zinc-900 hover:bg-zinc-800 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors shadow-sm"
+        >
+          <Plus size={16} strokeWidth={2.5} /> Add New Item
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Add Item Form */}
-        <div className="bg-white p-5 rounded-md border border-zinc-200 h-fit lg:col-span-1">
-          <h2 className="text-sm font-bold text-zinc-900 uppercase tracking-wider mb-4">Add New Item</h2>
-          <form onSubmit={handleAddItem} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1.5">Name</label>
-              <input 
-                required 
-                value={name} 
-                onChange={e => setName(e.target.value)} 
-                type="text" 
-                className="w-full bg-white text-zinc-900 border border-zinc-200 rounded-md px-3 py-1.5 text-sm focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 outline-none transition-all" 
-              />
-            </div>
-            <div className="relative">
-              <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1.5">Category</label>
-              <button
-                type="button"
-                onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="w-full bg-white text-left text-zinc-900 border border-zinc-200 rounded-md px-3 py-1.5 text-sm focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 outline-none transition-all flex justify-between items-center cursor-pointer"
-              >
-                <span>{category || "Select a category"}</span>
-                <span className="text-zinc-400 text-xs">▼</span>
-              </button>
-              
-              {dropdownOpen && (
-                <div className="absolute left-0 right-0 mt-1 bg-white border border-zinc-205 rounded-md shadow-lg z-30 max-h-60 flex flex-col">
-                  <div className="p-2 border-b border-zinc-100 flex-shrink-0">
-                    <input
-                      type="text"
-                      placeholder="Search categories..."
-                      value={searchQuery}
-                      onChange={e => setSearchQuery(e.target.value)}
-                      className="w-full bg-zinc-50 text-zinc-900 border border-zinc-150 rounded-md px-2.5 py-1 text-xs focus:border-zinc-900 outline-none"
-                    />
-                  </div>
-                  <div className="overflow-y-auto flex-1 py-1">
-                    {RESTAURANT_CATEGORIES.filter(cat => 
-                      cat.toLowerCase().includes(searchQuery.toLowerCase())
-                    ).map(cat => (
-                      <button
-                        key={cat}
-                        type="button"
-                        onClick={() => {
-                          setCategory(cat);
-                          setDropdownOpen(false);
-                          setSearchQuery('');
-                        }}
-                        className={`w-full text-left px-3.5 py-1.5 text-xs hover:bg-zinc-50 transition-colors cursor-pointer ${
-                          category === cat ? "bg-zinc-50 font-semibold text-zinc-950" : "text-zinc-650"
-                        }`}
-                      >
-                        {cat}
-                      </button>
-                    ))}
-                    {searchQuery && !RESTAURANT_CATEGORIES.some(cat => cat.toLowerCase() === searchQuery.trim().toLowerCase()) && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setCategory(searchQuery.trim());
-                          setDropdownOpen(false);
-                          setSearchQuery('');
-                        }}
-                        className="w-full text-left px-3.5 py-1.5 text-xs text-zinc-900 hover:bg-zinc-50 font-medium border-t border-zinc-100 cursor-pointer"
-                      >
-                        Add custom: "{searchQuery.trim()}"
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1.5">Price ($)</label>
-              <input 
-                required 
-                value={price} 
-                onChange={e => setPrice(e.target.value)} 
-                type="number" 
-                step="0.01" 
-                className="w-full bg-white text-zinc-900 border border-zinc-200 rounded-md px-3 py-1.5 text-sm focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 outline-none transition-all" 
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1.5">Description</label>
-              <textarea 
-                required 
-                value={description} 
-                onChange={e => setDescription(e.target.value)} 
-                rows={2} 
-                className="w-full bg-white text-zinc-900 border border-zinc-200 rounded-md px-3 py-1.5 text-sm focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 outline-none transition-all"
-              ></textarea>
-            </div>
-
-            {/* Image Upload Block */}
-            <div className="border-t border-zinc-100 pt-3">
-              <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1.5">Food Image</label>
-              <div className="space-y-2">
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  onChange={handleFileChange}
-                  className="w-full text-xs text-zinc-500 file:mr-2 file:py-1 file:px-2 file:rounded-md file:border file:border-zinc-200 file:bg-zinc-50 file:text-zinc-700 hover:file:bg-zinc-100 cursor-pointer"
-                />
-                <div className="text-[10px] text-zinc-400 text-center uppercase tracking-wider">or paste image URL</div>
-                <input 
-                  type="text" 
-                  placeholder="http://example.com/food.jpg" 
-                  value={imageUrl} 
-                  onChange={e => {
-                    setImageUrl(e.target.value);
-                    setImageFile(null);
-                    setImagePreviewUrl('');
-                  }}
-                  className="w-full bg-white text-zinc-900 border border-zinc-200 rounded-md px-3 py-1 text-xs focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 outline-none transition-all placeholder:text-zinc-400" 
-                />
-                {imagePreviewUrl && (
-                  <div className="mt-2 relative inline-block">
-                    <img src={imagePreviewUrl} alt="Preview" className="w-20 h-20 object-cover rounded-md border border-zinc-200" />
-                    <button 
-                      type="button" 
-                      onClick={() => { setImageFile(null); setImagePreviewUrl(''); }}
-                      className="absolute -top-1 -right-1 bg-red-100 hover:bg-red-200 text-red-700 rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold"
-                    >
-                      ✕
-                    </button>
+      {/* Grid of Product Cards */}
+      {loading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="bg-zinc-100 rounded-xl h-72 animate-pulse border border-zinc-200/50"></div>
+          ))}
+        </div>
+      ) : items.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 px-4 text-center bg-zinc-50/50 border border-dashed border-zinc-200 rounded-xl">
+          <Layers size={48} strokeWidth={1} className="text-zinc-300 mb-4" />
+          <h3 className="text-lg font-semibold text-zinc-900 mb-1">No items found</h3>
+          <p className="text-sm text-zinc-500 mb-6">Your menu is currently empty. Get started by adding a dish.</p>
+          <button 
+            onClick={() => setIsDrawerOpen(true)}
+            className="flex items-center gap-2 bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-900 px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm"
+          >
+            <Plus size={16} /> Add First Item
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-12">
+          {items.map(item => (
+            <div 
+              key={item._id} 
+              className={`flex flex-col bg-white border rounded-xl overflow-hidden shadow-sm transition-all duration-200 hover:shadow-md hover:border-zinc-300 ${!item.isAvailable ? 'border-zinc-200 opacity-75 grayscale-[30%]' : 'border-zinc-200'}`}
+            >
+              {/* Card Image */}
+              <div className="h-44 w-full bg-zinc-100 relative border-b border-zinc-100">
+                {item.imageUrl ? (
+                  <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center text-zinc-300">
+                    <ImageIcon size={32} strokeWidth={1.5} />
                   </div>
                 )}
+                {!item.isAvailable && (
+                  <div className="absolute top-3 left-3 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-sm uppercase tracking-wide">
+                    Sold Out
+                  </div>
+                )}
+                {item.customizationGroups && item.customizationGroups.length > 0 && (
+                   <div className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-md text-white text-[10px] font-medium px-2 py-1 rounded-md">
+                     {item.customizationGroups.length} Mods
+                   </div>
+                )}
               </div>
-            </div>
 
-            {/* Customizations Block */}
-            <div className="border-t border-zinc-100 pt-3">
-              <div className="flex justify-between items-center mb-2">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-550">Customizations</label>
+              {/* Card Content */}
+              <div className="p-4 flex-1 flex flex-col">
+                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1.5">{item.category}</span>
+                <div className="flex justify-between items-start gap-2 mb-2">
+                  <h3 className="font-semibold text-zinc-900 leading-tight">{item.name}</h3>
+                  <span className="font-bold text-zinc-900">${item.price.toFixed(2)}</span>
+                </div>
+                <p className="text-xs text-zinc-500 line-clamp-2 leading-relaxed flex-1">
+                  {item.description}
+                </p>
+              </div>
+
+              {/* Card Footer / Actions */}
+              <div className="p-3 bg-zinc-50/50 border-t border-zinc-100 flex items-center justify-between gap-2">
                 <button 
-                  type="button" 
-                  onClick={handleAddGroup}
-                  className="text-[10px] font-bold text-zinc-900 hover:underline cursor-pointer uppercase tracking-wider"
+                  onClick={() => toggleAvailability(item)}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-md text-xs font-medium transition-colors border ${
+                    item.isAvailable 
+                      ? 'bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-100' 
+                      : 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100'
+                  }`}
                 >
-                  + Add Group
+                  {item.isAvailable ? <><Ban size={14} /> Disable</> : <><CheckCircle2 size={14} /> Enable</>}
+                </button>
+                <button 
+                  onClick={() => handleDelete(item._id)}
+                  className="p-1.5 rounded-md text-zinc-400 hover:bg-red-50 hover:text-red-600 transition-colors border border-transparent hover:border-red-100"
+                  title="Delete Item"
+                >
+                  <Trash2 size={16} />
                 </button>
               </div>
+            </div>
+          ))}
+        </div>
+      )}
 
-              <div className="space-y-4">
-                {customizationGroups.map((group, gIdx) => (
-                  <div key={gIdx} className="bg-zinc-50 border border-zinc-200 rounded-md p-3 relative space-y-3">
-                    <button 
-                      type="button" 
-                      onClick={() => handleRemoveGroup(gIdx)}
-                      className="absolute top-2 right-2 text-zinc-400 hover:text-red-650 text-xs font-bold"
-                    >
-                      ✕
-                    </button>
+      {/* Slide-out Drawer Overlay */}
+      {isDrawerOpen && (
+        <div 
+          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex justify-end"
+          onClick={() => !uploading && setIsDrawerOpen(false)}
+        >
+          {/* Drawer Panel */}
+          <div 
+            className="w-full max-w-md bg-white h-full shadow-2xl flex flex-col animate-in slide-in-from-right transform transition-transform duration-300 border-l border-zinc-200"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Drawer Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100">
+              <h2 className="text-lg font-bold text-zinc-900">Add New Item</h2>
+              <button 
+                onClick={() => !uploading && setIsDrawerOpen(false)}
+                className="text-zinc-400 hover:text-zinc-800 transition-colors p-1 rounded-md hover:bg-zinc-100"
+                disabled={uploading}
+              >
+                <X size={20} />
+              </button>
+            </div>
 
+            {/* Drawer Body (Form) */}
+            <div className="flex-1 overflow-y-auto px-6 py-5 custom-scrollbar">
+              <form id="add-item-form" onSubmit={handleAddItem} className="space-y-5">
+                
+                {/* Basic Info */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-zinc-700 mb-1.5">Item Name</label>
+                    <input 
+                      required 
+                      value={name} 
+                      onChange={e => setName(e.target.value)} 
+                      type="text" 
+                      placeholder="e.g., Truffle Fries"
+                      className="w-full bg-white text-zinc-900 border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 outline-none transition-all placeholder:text-zinc-400" 
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-[10px] font-bold text-zinc-500 uppercase mb-1">Group Name</label>
+                      <label className="block text-xs font-semibold text-zinc-700 mb-1.5">Price ($)</label>
                       <input 
-                        type="text" 
                         required 
-                        placeholder="e.g. Choose Size, Add Toppings"
-                        value={group.name}
-                        onChange={e => handleGroupChange(gIdx, { name: e.target.value })}
-                        className="w-full bg-white text-zinc-900 border border-zinc-200 rounded-md px-2.5 py-1 text-xs focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 outline-none"
+                        value={price} 
+                        onChange={e => setPrice(e.target.value)} 
+                        type="number" 
+                        step="0.01" 
+                        placeholder="0.00"
+                        className="w-full bg-white text-zinc-900 border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 outline-none transition-all" 
                       />
                     </div>
-
-                    <div className="flex items-center justify-between gap-4">
-                      <label className="flex items-center gap-1.5 text-xs text-zinc-650 cursor-pointer">
-                        <input 
-                          type="checkbox" 
-                          checked={group.required}
-                          onChange={e => handleGroupChange(gIdx, { required: e.target.checked })}
-                          className="accent-zinc-900 border-zinc-300 w-3 h-3"
-                        />
-                        <span>Required Selection?</span>
-                      </label>
-                      <div className="flex items-center gap-1">
-                        <span className="text-[10px] text-zinc-400 uppercase">Max Picks:</span>
-                        <input 
-                          type="number" 
-                          min={1} 
-                          value={group.maxSelect}
-                          onChange={e => handleGroupChange(gIdx, { maxSelect: parseInt(e.target.value) || 1 })}
-                          className="w-10 bg-white border border-zinc-200 rounded-md px-1.5 py-0.5 text-xs text-center"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="border-t border-zinc-200/60 pt-2 space-y-1.5">
-                      <div className="flex justify-between items-center text-[10px] text-zinc-450 uppercase font-semibold">
-                        <span>Options</span>
-                        <button 
-                          type="button" 
-                          onClick={() => handleAddOption(gIdx)}
-                          className="text-[9px] font-bold text-zinc-900 hover:underline cursor-pointer"
-                        >
-                          + Add Option
-                        </button>
-                      </div>
-
-                      {group.options.map((option, oIdx) => (
-                        <div key={oIdx} className="flex gap-2 items-center">
-                          <input 
-                            type="text" 
-                            required 
-                            placeholder="Option Name" 
-                            value={option.name}
-                            onChange={e => handleOptionChange(gIdx, oIdx, { name: e.target.value })}
-                            className="flex-1 bg-white text-zinc-900 border border-zinc-200 rounded-md px-2 py-0.5 text-xs"
-                          />
-                          <input 
-                            type="number" 
-                            step="0.01" 
-                            placeholder="Price" 
-                            value={option.price}
-                            onChange={e => handleOptionChange(gIdx, oIdx, { price: e.target.value })}
-                            className="w-14 bg-white text-zinc-900 border border-zinc-200 rounded-md px-1 py-0.5 text-xs text-center"
-                          />
-                          {group.options.length > 1 && (
-                            <button 
-                              type="button" 
-                              onClick={() => handleRemoveOption(gIdx, oIdx)}
-                              className="text-zinc-400 hover:text-red-500 text-[10px]"
-                            >
-                              ✕
-                            </button>
-                          )}
+                    
+                    {/* Category Dropdown */}
+                    <div className="relative">
+                      <label className="block text-xs font-semibold text-zinc-700 mb-1.5">Category</label>
+                      <button
+                        type="button"
+                        onClick={() => setDropdownOpen(!dropdownOpen)}
+                        className="w-full bg-white text-left text-zinc-900 border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 outline-none transition-all flex justify-between items-center"
+                      >
+                        <span className="truncate pr-2">{category || "Select..."}</span>
+                        <ChevronDown size={14} className="text-zinc-400 flex-shrink-0" />
+                      </button>
+                      
+                      {dropdownOpen && (
+                        <div className="absolute left-0 right-0 mt-1 bg-white border border-zinc-200 rounded-lg shadow-xl z-50 max-h-60 flex flex-col overflow-hidden">
+                          <div className="p-2 border-b border-zinc-100 flex flex-items-center gap-2 bg-zinc-50/50">
+                            <Search size={14} className="text-zinc-400 ml-1" />
+                            <input
+                              type="text"
+                              placeholder="Search..."
+                              value={searchQuery}
+                              onChange={e => setSearchQuery(e.target.value)}
+                              className="w-full bg-transparent text-zinc-900 text-xs outline-none"
+                            />
+                          </div>
+                          <div className="overflow-y-auto flex-1 p-1">
+                            {RESTAURANT_CATEGORIES.filter(cat => 
+                              cat.toLowerCase().includes(searchQuery.toLowerCase())
+                            ).map(cat => (
+                              <button
+                                key={cat}
+                                type="button"
+                                onClick={() => { setCategory(cat); setDropdownOpen(false); setSearchQuery(''); }}
+                                className={`w-full text-left px-3 py-2 rounded-md text-xs hover:bg-zinc-100 transition-colors ${
+                                  category === cat ? "bg-zinc-100 font-semibold text-zinc-900" : "text-zinc-600"
+                                }`}
+                              >
+                                {cat}
+                              </button>
+                            ))}
+                            {searchQuery && !RESTAURANT_CATEGORIES.some(cat => cat.toLowerCase() === searchQuery.trim().toLowerCase()) && (
+                              <button
+                                type="button"
+                                onClick={() => { setCategory(searchQuery.trim()); setDropdownOpen(false); setSearchQuery(''); }}
+                                className="w-full text-left px-3 py-2 rounded-md text-xs text-primary font-medium bg-primary/5 hover:bg-primary/10"
+                              >
+                                Add "{searchQuery.trim()}"
+                              </button>
+                            )}
+                          </div>
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <button 
-              type="submit" 
-              disabled={uploading}
-              className="w-full bg-zinc-900 text-white text-xs font-semibold py-2.5 rounded-md hover:bg-zinc-800 transition-colors cursor-pointer mt-2 disabled:opacity-50"
-            >
-              {uploading ? 'Uploading Image...' : 'Add to Menu'}
-            </button>
-          </form>
-        </div>
-
-        {/* Menu Items List */}
-        <div className="lg:col-span-2 space-y-3">
-          <h2 className="text-sm font-bold text-zinc-400 uppercase tracking-wider mb-4">Current Menu</h2>
-          {loading ? (
-            <div className="animate-pulse space-y-3">
-              <div className="h-20 bg-zinc-100 border border-zinc-200 rounded-md"></div>
-              <div className="h-20 bg-zinc-100 border border-zinc-200 rounded-md"></div>
-            </div>
-          ) : (
-            items.map(item => (
-              <div key={item._id} className={`bg-white p-4 rounded-md border ${item.isAvailable ? 'border-zinc-200' : 'border-zinc-200 bg-zinc-50/50 opacity-60'} flex justify-between items-center transition-all hover:border-zinc-300 gap-4`}>
-                <div className="flex-1 flex gap-3 items-center min-w-0">
-                  {item.imageUrl ? (
-                    <img src={item.imageUrl} alt={item.name} className="w-16 h-16 object-cover rounded-md border border-zinc-200 flex-shrink-0" />
-                  ) : (
-                    <div className="w-16 h-16 bg-zinc-50 border border-dashed border-zinc-200 rounded-md flex items-center justify-center text-[8px] text-zinc-400 flex-shrink-0">No Image</div>
-                  )}
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <h3 className="font-bold text-sm text-zinc-900 truncate">{item.name}</h3>
-                      <span className="border border-zinc-200 text-zinc-500 text-[9px] px-1.5 py-0.5 rounded-sm font-semibold uppercase tracking-wider">{item.category}</span>
-                    </div>
-                    <p className="text-zinc-500 text-xs mb-1.5 leading-relaxed line-clamp-2">{item.description}</p>
-                    <div className="flex items-center gap-3">
-                      <p className="font-bold text-sm text-zinc-900">${item.price.toFixed(2)}</p>
-                      {item.customizationGroups && item.customizationGroups.length > 0 && (
-                        <p className="text-[9px] font-semibold text-zinc-400 font-mono">
-                          ({item.customizationGroups.length} opt groups)
-                        </p>
                       )}
                     </div>
                   </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-zinc-700 mb-1.5">Description</label>
+                    <textarea 
+                      required 
+                      value={description} 
+                      onChange={e => setDescription(e.target.value)} 
+                      rows={3} 
+                      placeholder="Briefly describe the dish..."
+                      className="w-full bg-white text-zinc-900 border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 outline-none transition-all placeholder:text-zinc-400 resize-none"
+                    />
+                  </div>
                 </div>
-                <div className="flex flex-col gap-2 min-w-[120px] flex-shrink-0">
-                  <button 
-                    onClick={() => toggleAvailability(item)}
-                    className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors cursor-pointer text-center ${
-                      item.isAvailable 
-                        ? 'border border-zinc-200 text-zinc-700 hover:bg-zinc-50' 
-                        : 'bg-zinc-900 text-white hover:bg-zinc-800'
-                    }`}
-                  >
-                    {item.isAvailable ? 'Mark Sold Out' : 'Mark Available'}
-                  </button>
-                  <button 
-                    onClick={() => handleDelete(item._id)}
-                    className="px-3 py-1.5 rounded-md text-xs font-semibold border border-red-100 text-red-650 hover:bg-red-50 transition-colors cursor-pointer text-center"
-                  >
-                    Delete
-                  </button>
+
+                <hr className="border-zinc-100" />
+
+                {/* Image Upload */}
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-700 mb-2">Item Image</label>
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center gap-3">
+                      {imagePreviewUrl ? (
+                        <div className="relative inline-block flex-shrink-0">
+                          <img src={imagePreviewUrl} alt="Preview" className="w-16 h-16 object-cover rounded-lg border border-zinc-200" />
+                          <button 
+                            type="button" 
+                            onClick={() => { setImageFile(null); setImagePreviewUrl(''); }}
+                            className="absolute -top-2 -right-2 bg-white border border-zinc-200 hover:bg-red-50 text-red-600 rounded-full w-5 h-5 flex items-center justify-center text-[10px] shadow-sm transition-colors"
+                          >
+                            <X size={12} strokeWidth={3} />
+                          </button>
+                        </div>
+                      ) : (
+                        <label className="w-16 h-16 border-2 border-dashed border-zinc-200 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-zinc-50 hover:border-zinc-300 transition-colors flex-shrink-0 text-zinc-400">
+                          <ImageIcon size={20} />
+                          <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+                        </label>
+                      )}
+                      
+                      <div className="flex-1">
+                        <p className="text-[10px] text-zinc-500 mb-1">Or paste an image URL directly:</p>
+                        <input 
+                          type="text" 
+                          placeholder="https://..." 
+                          value={imageUrl} 
+                          onChange={e => { setImageUrl(e.target.value); setImageFile(null); setImagePreviewUrl(''); }}
+                          className="w-full bg-white text-zinc-900 border border-zinc-200 rounded-md px-3 py-1.5 text-xs focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 outline-none transition-all placeholder:text-zinc-400" 
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))
-          )}
+
+                <hr className="border-zinc-100" />
+
+                {/* Customizations */}
+                <div>
+                  <div className="flex justify-between items-center mb-3">
+                    <label className="block text-xs font-semibold text-zinc-700">Customizations</label>
+                    <button 
+                      type="button" 
+                      onClick={handleAddGroup}
+                      className="text-xs font-medium text-zinc-900 bg-zinc-100 hover:bg-zinc-200 px-2 py-1 rounded-md transition-colors flex items-center gap-1"
+                    >
+                      <Plus size={12} /> Group
+                    </button>
+                  </div>
+
+                  <div className="space-y-4">
+                    {customizationGroups.length === 0 && (
+                      <p className="text-xs text-zinc-500 text-center py-4 bg-zinc-50 rounded-lg border border-dashed border-zinc-200">
+                        No customizations added.
+                      </p>
+                    )}
+                    
+                    {customizationGroups.map((group, gIdx) => (
+                      <div key={gIdx} className="bg-white border border-zinc-200 rounded-lg p-3 shadow-sm relative group/group">
+                        <button 
+                          type="button" 
+                          onClick={() => handleRemoveGroup(gIdx)}
+                          className="absolute top-3 right-3 text-zinc-400 hover:text-red-500 transition-colors bg-white"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+
+                        <div className="pr-6 mb-3">
+                          <input 
+                            type="text" 
+                            required 
+                            placeholder="Group Name (e.g. Size, Toppings)"
+                            value={group.name}
+                            onChange={e => handleGroupChange(gIdx, { name: e.target.value })}
+                            className="w-full bg-transparent text-zinc-900 font-semibold border-b border-dashed border-zinc-300 pb-1 text-sm focus:border-zinc-900 outline-none placeholder:font-normal placeholder:text-zinc-400"
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-4 mb-3 bg-zinc-50 p-2 rounded-md border border-zinc-100">
+                          <label className="flex items-center gap-2 text-xs font-medium text-zinc-700 cursor-pointer">
+                            <input 
+                              type="checkbox" 
+                              checked={group.required}
+                              onChange={e => handleGroupChange(gIdx, { required: e.target.checked })}
+                              className="accent-zinc-900 w-3.5 h-3.5 rounded-sm"
+                            />
+                            Required
+                          </label>
+                          <div className="w-px h-4 bg-zinc-200"></div>
+                          <div className="flex items-center gap-2 text-xs font-medium text-zinc-700">
+                            Max Select:
+                            <input 
+                              type="number" 
+                              min={1} 
+                              value={group.maxSelect}
+                              onChange={e => handleGroupChange(gIdx, { maxSelect: parseInt(e.target.value) || 1 })}
+                              className="w-12 bg-white border border-zinc-200 rounded text-center py-0.5"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-2 pl-2 border-l-2 border-zinc-100">
+                          {group.options.map((option, oIdx) => (
+                            <div key={oIdx} className="flex gap-2 items-center">
+                              <input 
+                                type="text" 
+                                required 
+                                placeholder="Option" 
+                                value={option.name}
+                                onChange={e => handleOptionChange(gIdx, oIdx, { name: e.target.value })}
+                                className="flex-1 bg-white text-zinc-900 border border-zinc-200 rounded-md px-2 py-1.5 text-xs focus:border-zinc-900 outline-none"
+                              />
+                              <div className="relative w-20">
+                                <span className="absolute left-2 top-1.5 text-xs text-zinc-400">$</span>
+                                <input 
+                                  type="number" 
+                                  step="0.01" 
+                                  placeholder="0.00" 
+                                  value={option.price}
+                                  onChange={e => handleOptionChange(gIdx, oIdx, { price: e.target.value })}
+                                  className="w-full bg-white text-zinc-900 border border-zinc-200 rounded-md pl-5 pr-2 py-1.5 text-xs focus:border-zinc-900 outline-none"
+                                />
+                              </div>
+                              <button 
+                                type="button" 
+                                onClick={() => handleRemoveOption(gIdx, oIdx)}
+                                disabled={group.options.length <= 1}
+                                className="text-zinc-400 hover:text-red-500 disabled:opacity-30 disabled:cursor-not-allowed"
+                              >
+                                <X size={14} />
+                              </button>
+                            </div>
+                          ))}
+                          <button 
+                            type="button" 
+                            onClick={() => handleAddOption(gIdx)}
+                            className="text-[11px] font-medium text-zinc-500 hover:text-zinc-900 transition-colors flex items-center gap-1 mt-1"
+                          >
+                            <Plus size={10} /> Add Option
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </form>
+            </div>
+
+            {/* Drawer Footer (Sticky Actions) */}
+            <div className="p-4 border-t border-zinc-200 bg-zinc-50 flex gap-3 mt-auto">
+              <button 
+                type="button"
+                onClick={() => !uploading && setIsDrawerOpen(false)}
+                className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-zinc-600 bg-white border border-zinc-200 hover:bg-zinc-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit" 
+                form="add-item-form"
+                disabled={uploading}
+                className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-zinc-900 hover:bg-zinc-800 shadow-sm transition-colors disabled:opacity-50"
+              >
+                {uploading ? 'Saving...' : 'Save Item'}
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Adding a global class for the drawer scrollbar to keep it minimal */}
+      <style dangerouslySetOrigin>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #e4e4e7;
+          border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #d4d4d8;
+        }
+      `}</style>
     </div>
   );
 }
