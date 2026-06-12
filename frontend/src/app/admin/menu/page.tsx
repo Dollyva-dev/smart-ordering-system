@@ -10,7 +10,8 @@ import {
   Ban, 
   Search, 
   ChevronDown,
-  Layers
+  Layers,
+  Edit2
 } from 'lucide-react';
 
 interface CustomizationOption {
@@ -35,6 +36,11 @@ interface MenuItem {
   imageUrl?: string;
   isAvailable: boolean;
   customizationGroups?: CustomizationGroup[];
+  isFeatured?: boolean;
+  featuredPosition?: number;
+  featuredBadge?: string;
+  discountPercent?: number;
+  dietaryPreferences?: string[];
 }
 
 interface FormOption {
@@ -63,13 +69,62 @@ const RESTAURANT_CATEGORIES = [
 export default function AdminMenuPage() {
   const [items, setItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  
+  const [isDrawerMounted, setIsDrawerMounted] = useState(false);
+  const [isDrawerVisible, setIsDrawerVisible] = useState(false);
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+
+  const openDrawer = (item?: MenuItem) => {
+    if (item) {
+      setEditingItemId(item._id);
+      setName(item.name);
+      setDescription(item.description);
+      setPrice(item.price.toString());
+      setCategory(item.category);
+      setImageUrl(item.imageUrl || '');
+      setImagePreviewUrl(item.imageUrl || '');
+      setCustomizationGroups(item.customizationGroups?.map(g => ({
+        name: g.name,
+        required: g.required,
+        maxSelect: g.maxSelect,
+        options: g.options.map(o => ({ name: o.name, price: o.price.toString() }))
+      })) || []);
+      setDietaryPreferences(item.dietaryPreferences || []);
+    } else {
+      setEditingItemId(null);
+      resetFormState();
+    }
+    setIsDrawerMounted(true);
+    setTimeout(() => setIsDrawerVisible(true), 10);
+  };
+
+  const closeDrawer = () => {
+    setIsDrawerVisible(false);
+    setTimeout(() => {
+      setIsDrawerMounted(false);
+      resetFormState();
+      setEditingItemId(null);
+    }, 300);
+  };
 
   // Form State
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [category, setCategory] = useState('');
+  
+  // Dietary State
+  const [dietaryPreferences, setDietaryPreferences] = useState<string[]>([]);
+  
+  // Promo Drawer State
+  const [isPromoDrawerVisible, setIsPromoDrawerVisible] = useState(false);
+  const [promoItemsState, setPromoItemsState] = useState<Record<string, {
+    isFeatured: boolean;
+    featuredPosition: number;
+    featuredBadge: string;
+    discountPercent: number;
+  }>>({});
+  const [savingPromos, setSavingPromos] = useState(false);
   
   // Dropdown Category State
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -90,13 +145,13 @@ export default function AdminMenuPage() {
 
   // Prevent background scroll when drawer is open
   useEffect(() => {
-    if (isDrawerOpen) {
+    if (isDrawerVisible) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'unset';
     }
     return () => { document.body.style.overflow = 'unset'; };
-  }, [isDrawerOpen]);
+  }, [isDrawerVisible]);
 
   const fetchItems = async () => {
     try {
@@ -120,7 +175,7 @@ export default function AdminMenuPage() {
   };
 
   const uploadImage = async (): Promise<string> => {
-    if (!imageFile) return imageUrl;
+    if (!imageFile) return imageUrl || imagePreviewUrl;
     
     setUploading(true);
     const formData = new FormData();
@@ -190,7 +245,7 @@ export default function AdminMenuPage() {
     );
   };
 
-  const resetForm = () => {
+  const resetFormState = () => {
     setName('');
     setDescription('');
     setPrice('');
@@ -200,7 +255,7 @@ export default function AdminMenuPage() {
     setImageUrl('');
     setCustomizationGroups([]);
     setDropdownOpen(false);
-    setIsDrawerOpen(false);
+    setDietaryPreferences([]);
   };
 
   const handleAddItem = async (e: React.FormEvent) => {
@@ -219,8 +274,14 @@ export default function AdminMenuPage() {
         }))
       }));
 
-      const res = await fetch('http://localhost:5000/api/menu', {
-        method: 'POST',
+      const url = editingItemId 
+        ? `http://localhost:5000/api/menu/${editingItemId}`
+        : 'http://localhost:5000/api/menu';
+        
+      const method = editingItemId ? 'PATCH' : 'POST';
+
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name,
@@ -228,11 +289,12 @@ export default function AdminMenuPage() {
           price: parseFloat(price),
           category,
           imageUrl: finalImageUrl,
-          customizationGroups: formattedGroups
+          customizationGroups: formattedGroups,
+          dietaryPreferences
         })
       });
       if (res.ok) {
-        resetForm();
+        closeDrawer();
         fetchItems();
       }
     } catch (err) {
@@ -263,6 +325,48 @@ export default function AdminMenuPage() {
     }
   };
 
+  const openPromoDrawer = () => {
+    const initialState: Record<string, any> = {};
+    items.forEach(item => {
+      initialState[item._id] = {
+        isFeatured: item.isFeatured || false,
+        featuredPosition: item.featuredPosition || 1,
+        featuredBadge: item.featuredBadge || 'Sale',
+        discountPercent: item.discountPercent || 0
+      };
+    });
+    setPromoItemsState(initialState);
+    setIsPromoDrawerVisible(true);
+  };
+
+  const handleSavePromos = async () => {
+    setSavingPromos(true);
+    try {
+      const promises = items.map(item => {
+        const promoState = promoItemsState[item._id];
+        if (!promoState) return Promise.resolve();
+        // Only patch if something changed (simplification: we just patch all for now)
+        return fetch(`http://localhost:5000/api/menu/${item._id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            isFeatured: promoState.isFeatured,
+            featuredPosition: promoState.isFeatured ? promoState.featuredPosition : null,
+            featuredBadge: promoState.isFeatured ? promoState.featuredBadge : null,
+            discountPercent: promoState.discountPercent || 0
+          })
+        });
+      });
+      await Promise.all(promises);
+      setIsPromoDrawerVisible(false);
+      fetchItems();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSavingPromos(false);
+    }
+  };
+
   return (
     <div className="h-full flex flex-col max-w-7xl mx-auto relative">
       
@@ -272,12 +376,20 @@ export default function AdminMenuPage() {
           <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">Menu Items</h1>
           <p className="text-sm text-zinc-500 mt-1">Manage your restaurant catalog and offerings</p>
         </div>
-        <button 
-          onClick={() => setIsDrawerOpen(true)}
-          className="flex items-center gap-2 bg-zinc-900 hover:bg-zinc-800 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors shadow-sm"
-        >
-          <Plus size={16} strokeWidth={2.5} /> Add New Item
-        </button>
+        <div className="flex gap-2">
+          <button 
+            onClick={openPromoDrawer}
+            className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors shadow-sm"
+          >
+            Promotions
+          </button>
+          <button 
+            onClick={() => openDrawer()}
+            className="flex items-center gap-2 bg-zinc-900 hover:bg-zinc-800 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors shadow-sm"
+          >
+            <Plus size={16} strokeWidth={2.5} /> Add New Item
+          </button>
+        </div>
       </div>
 
       {/* Grid of Product Cards */}
@@ -293,7 +405,7 @@ export default function AdminMenuPage() {
           <h3 className="text-lg font-semibold text-zinc-900 mb-1">No items found</h3>
           <p className="text-sm text-zinc-500 mb-6">Your menu is currently empty. Get started by adding a dish.</p>
           <button 
-            onClick={() => setIsDrawerOpen(true)}
+            onClick={() => openDrawer()}
             className="flex items-center gap-2 bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-900 px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm"
           >
             <Plus size={16} /> Add First Item
@@ -352,6 +464,13 @@ export default function AdminMenuPage() {
                   {item.isAvailable ? <><Ban size={14} /> Disable</> : <><CheckCircle2 size={14} /> Enable</>}
                 </button>
                 <button 
+                  onClick={() => openDrawer(item)}
+                  className="p-1.5 rounded-md text-zinc-400 hover:bg-blue-50 hover:text-blue-600 transition-colors border border-transparent hover:border-blue-100"
+                  title="Edit Item"
+                >
+                  <Edit2 size={16} />
+                </button>
+                <button 
                   onClick={() => handleDelete(item._id)}
                   className="p-1.5 rounded-md text-zinc-400 hover:bg-red-50 hover:text-red-600 transition-colors border border-transparent hover:border-red-100"
                   title="Delete Item"
@@ -365,21 +484,21 @@ export default function AdminMenuPage() {
       )}
 
       {/* Slide-out Drawer Overlay */}
-      {isDrawerOpen && (
+      {isDrawerMounted && (
         <div 
-          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex justify-end"
-          onClick={() => !uploading && setIsDrawerOpen(false)}
+          className={`fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex justify-end transition-opacity duration-300 ${isDrawerVisible ? 'opacity-100' : 'opacity-0'}`}
+          onClick={() => !uploading && closeDrawer()}
         >
           {/* Drawer Panel */}
           <div 
-            className="w-full max-w-md bg-white h-full shadow-2xl flex flex-col animate-in slide-in-from-right transform transition-transform duration-300 border-l border-zinc-200"
+            className={`w-full max-w-md bg-white h-full shadow-2xl flex flex-col transform transition-transform duration-300 border-l border-zinc-200 ${isDrawerVisible ? 'translate-x-0' : 'translate-x-full'}`}
             onClick={e => e.stopPropagation()}
           >
             {/* Drawer Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100">
-              <h2 className="text-lg font-bold text-zinc-900">Add New Item</h2>
+              <h2 className="text-lg font-bold text-zinc-900">{editingItemId ? 'Edit Item' : 'Add New Item'}</h2>
               <button 
-                onClick={() => !uploading && setIsDrawerOpen(false)}
+                onClick={() => !uploading && closeDrawer()}
                 className="text-zinc-400 hover:text-zinc-800 transition-colors p-1 rounded-md hover:bg-zinc-100"
                 disabled={uploading}
               >
@@ -527,6 +646,32 @@ export default function AdminMenuPage() {
 
                 <hr className="border-zinc-100" />
 
+                {/* Dietary Preferences Section */}
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-700 mb-2">Dietary Preferences</label>
+                  <div className="flex flex-wrap gap-2">
+                    {["Vegetarian", "Vegan", "Gluten-Free", "Pescatarian"].map(diet => (
+                      <label key={diet} className="flex items-center gap-2 text-xs font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 px-3 py-1.5 rounded-md cursor-pointer hover:bg-zinc-100 transition-colors">
+                        <input 
+                          type="checkbox" 
+                          checked={dietaryPreferences.includes(diet)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setDietaryPreferences([...dietaryPreferences, diet]);
+                            } else {
+                              setDietaryPreferences(dietaryPreferences.filter(d => d !== diet));
+                            }
+                          }}
+                          className="accent-zinc-900 w-3.5 h-3.5 rounded-sm"
+                        />
+                        {diet}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <hr className="border-zinc-100" />
+
                 {/* Customizations */}
                 <div>
                   <div className="flex justify-between items-center mb-3">
@@ -642,7 +787,7 @@ export default function AdminMenuPage() {
             <div className="p-4 border-t border-zinc-200 bg-zinc-50 flex gap-3 mt-auto">
               <button 
                 type="button"
-                onClick={() => !uploading && setIsDrawerOpen(false)}
+                onClick={() => !uploading && closeDrawer()}
                 className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-zinc-600 bg-white border border-zinc-200 hover:bg-zinc-50 transition-colors"
               >
                 Cancel
@@ -660,8 +805,143 @@ export default function AdminMenuPage() {
         </div>
       )}
 
+      {/* Promo Drawer */}
+      {isPromoDrawerVisible && (
+        <>
+          <div 
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 transition-opacity"
+            onClick={() => setIsPromoDrawerVisible(false)}
+          />
+          <div className="fixed inset-y-0 right-0 w-full max-w-2xl bg-white shadow-2xl z-50 flex flex-col transform transition-transform border-l border-zinc-200">
+            
+            {/* Drawer Header */}
+            <div className="flex justify-between items-center px-6 py-5 border-b border-zinc-100 bg-amber-50/30">
+              <div>
+                <h2 className="text-lg font-bold text-zinc-900 flex items-center gap-2">
+                  <span className="text-amber-500">★</span> Promotions & Sliders
+                </h2>
+                <p className="text-xs text-zinc-500 mt-1">Manage discounts and featured items across your entire menu</p>
+              </div>
+              <button 
+                onClick={() => setIsPromoDrawerVisible(false)}
+                className="p-2 hover:bg-zinc-100 rounded-full transition-colors text-zinc-400 hover:text-zinc-600"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Drawer Body */}
+            <div className="flex-1 overflow-y-auto p-6 bg-zinc-50/50 custom-scrollbar space-y-4">
+              {items.map(item => {
+                const promo = promoItemsState[item._id];
+                if (!promo) return null;
+                return (
+                  <div key={item._id} className="bg-white border border-zinc-200 rounded-xl p-4 flex gap-4 items-start shadow-sm hover:border-amber-200 transition-colors">
+                    <img src={item.imageUrl || ''} alt={item.name} className="w-16 h-16 object-cover rounded-lg bg-zinc-100" />
+                    <div className="flex-1 space-y-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="font-semibold text-zinc-900 text-sm">{item.name}</h3>
+                          <p className="text-xs text-zinc-500">${item.price.toFixed(2)}</p>
+                        </div>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <span className="text-xs font-semibold text-zinc-700">In Slider</span>
+                          <div className="relative inline-flex items-center">
+                            <input 
+                              type="checkbox" 
+                              className="sr-only peer" 
+                              checked={promo.isFeatured}
+                              onChange={(e) => setPromoItemsState(prev => ({
+                                ...prev, 
+                                [item._id]: { ...prev[item._id], isFeatured: e.target.checked }
+                              }))}
+                            />
+                            <div className="w-8 h-4 bg-zinc-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-amber-500"></div>
+                          </div>
+                        </label>
+                      </div>
+                      
+                      <div className="grid grid-cols-3 gap-3">
+                        <div>
+                          <label className="block text-[10px] font-semibold text-zinc-500 uppercase tracking-wider mb-1">Discount %</label>
+                          <input 
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={promo.discountPercent || ''}
+                            onChange={(e) => setPromoItemsState(prev => ({
+                              ...prev, 
+                              [item._id]: { ...prev[item._id], discountPercent: parseInt(e.target.value) || 0 }
+                            }))}
+                            className="w-full bg-zinc-50 border border-zinc-200 rounded-md px-2 py-1.5 text-xs focus:ring-1 focus:ring-amber-500 outline-none"
+                            placeholder="0"
+                          />
+                        </div>
+                        {promo.isFeatured && (
+                          <>
+                            <div>
+                              <label className="block text-[10px] font-semibold text-zinc-500 uppercase tracking-wider mb-1">Position</label>
+                              <select 
+                                value={promo.featuredPosition}
+                                onChange={(e) => setPromoItemsState(prev => ({
+                                  ...prev, 
+                                  [item._id]: { ...prev[item._id], featuredPosition: parseInt(e.target.value) }
+                                }))}
+                                className="w-full bg-zinc-50 border border-zinc-200 rounded-md px-2 py-1.5 text-xs focus:ring-1 focus:ring-amber-500 outline-none"
+                              >
+                                {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n}</option>)}
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-semibold text-zinc-500 uppercase tracking-wider mb-1">Badge</label>
+                              <select 
+                                value={promo.featuredBadge}
+                                onChange={(e) => setPromoItemsState(prev => ({
+                                  ...prev, 
+                                  [item._id]: { ...prev[item._id], featuredBadge: e.target.value }
+                                }))}
+                                className="w-full bg-zinc-50 border border-zinc-200 rounded-md px-2 py-1.5 text-xs focus:ring-1 focus:ring-amber-500 outline-none"
+                              >
+                                <option value="Sale">Sale</option>
+                                <option value="Combo">Combo</option>
+                                <option value="Free Item">Free Item</option>
+                                <option value="Chef's Special">Chef's Special</option>
+                                <option value="Popular">Popular</option>
+                              </select>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Drawer Footer */}
+            <div className="p-6 border-t border-zinc-100 bg-white flex justify-end gap-3">
+              <button 
+                type="button" 
+                onClick={() => setIsPromoDrawerVisible(false)}
+                className="px-5 py-2.5 rounded-lg text-sm font-semibold text-zinc-600 hover:bg-zinc-100 transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                type="button"
+                onClick={handleSavePromos}
+                disabled={savingPromos}
+                className="px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-amber-500 hover:bg-amber-600 transition-colors shadow-sm disabled:opacity-50"
+              >
+                {savingPromos ? 'Saving...' : 'Save Promotions'}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
       {/* Adding a global class for the drawer scrollbar to keep it minimal */}
-      <style dangerouslySetOrigin>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         .custom-scrollbar::-webkit-scrollbar {
           width: 4px;
         }
@@ -675,7 +955,7 @@ export default function AdminMenuPage() {
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
           background: #d4d4d8;
         }
-      `}</style>
+      `}} />
     </div>
   );
 }

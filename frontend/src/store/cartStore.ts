@@ -13,6 +13,7 @@ export interface CartItem {
   price: number; // Total price (basePrice + sum of customizations)
   basePrice: number;
   quantity: number;
+  imageUrl?: string;
   selectedCustomizations: SelectedCustomizationOption[];
 }
 
@@ -22,6 +23,7 @@ interface CartStore {
     _id: string; 
     name: string; 
     price: number; 
+    imageUrl?: string;
     selectedCustomizations?: SelectedCustomizationOption[] 
   }) => void;
   removeItem: (cartId: string) => void;
@@ -61,6 +63,7 @@ export const useCartStore = create<CartStore>((set, get) => ({
             price: finalPrice, 
             basePrice: newItem.price, 
             quantity: 1, 
+            imageUrl: newItem.imageUrl,
             selectedCustomizations: sortedCustomizations 
           }
         ] 

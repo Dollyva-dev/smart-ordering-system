@@ -103,14 +103,29 @@ export default function AdminFloorPlanPage() {
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
   // View Mode / Drawer States
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isDrawerMounted, setIsDrawerMounted] = useState(false);
+  const [isDrawerVisible, setIsDrawerVisible] = useState(false);
   const [viewTable, setViewTable] = useState<FloorElement | null>(null);
+
+  const openDrawer = (table: FloorElement) => {
+    setViewTable(table);
+    setIsDrawerMounted(true);
+    setTimeout(() => setIsDrawerVisible(true), 10);
+  };
+
+  const closeDrawer = () => {
+    setIsDrawerVisible(false);
+    setTimeout(() => {
+      setIsDrawerMounted(false);
+      setViewTable(null);
+    }, 300);
+  };
 
   // Prevent background scroll when drawer is open
   useEffect(() => {
-    document.body.style.overflow = isDrawerOpen ? 'hidden' : 'unset';
+    document.body.style.overflow = isDrawerVisible ? 'hidden' : 'unset';
     return () => { document.body.style.overflow = 'unset'; };
-  }, [isDrawerOpen]);
+  }, [isDrawerVisible]);
 
   // --- Interaction Logic (Drag & Resize) ---
   const handlePointerDown = (e: React.PointerEvent, el: FloorElement) => {
@@ -119,8 +134,7 @@ export default function AdminFloorPlanPage() {
     if (mode === 'view') {
       // Only open QR drawer if it is explicitly marked as a table
       if (el.isTable) {
-        setViewTable(el);
-        setIsDrawerOpen(true);
+        openDrawer(el);
       }
       return;
     }
@@ -592,13 +606,13 @@ export default function AdminFloorPlanPage() {
       </div>
 
       {/* --- QR Code View Drawer --- */}
-      {isDrawerOpen && viewTable && (
+      {isDrawerMounted && viewTable && (
         <div 
-          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex justify-end transition-opacity"
-          onClick={() => setIsDrawerOpen(false)}
+          className={`fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex justify-end transition-opacity duration-300 ${isDrawerVisible ? 'opacity-100' : 'opacity-0'}`}
+          onClick={() => closeDrawer()}
         >
           <div 
-            className="w-full max-w-sm bg-white h-full shadow-2xl flex flex-col animate-in slide-in-from-right transform transition-transform duration-300 border-l border-zinc-200"
+            className={`w-full max-w-sm bg-white h-full shadow-2xl flex flex-col transform transition-transform duration-300 border-l border-zinc-200 ${isDrawerVisible ? 'translate-x-0' : 'translate-x-full'}`}
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100">
@@ -606,7 +620,7 @@ export default function AdminFloorPlanPage() {
                 Table {viewTable.label}
               </h2>
               <button 
-                onClick={() => setIsDrawerOpen(false)}
+                onClick={() => closeDrawer()}
                 className="text-zinc-400 hover:text-zinc-800 transition-colors p-1.5 rounded-md hover:bg-zinc-100 cursor-pointer"
               >
                 <X size={20} strokeWidth={2.5} />
