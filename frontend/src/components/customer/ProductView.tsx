@@ -148,7 +148,7 @@ export function ProductView({
       </div>
 
       {/* Fixed Bottom Action Bar */}
-      <div className="absolute bottom-0 left-0 right-0 bg-white border-t border-[#E0E6DF] p-4 pb-[env(safe-area-inset-bottom)] shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-20">
+      <div className="absolute bottom-0 left-0 right-0 bg-white border-t border-[#E0E6DF] p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-20">
         <button
           disabled={isAddDisabled()}
           onClick={() => {
