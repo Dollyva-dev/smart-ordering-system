@@ -152,10 +152,10 @@ export function CartTab({
           </div>
 
           {/* Spacer so the last items aren't hidden behind the fixed button */}
-          <div className="h-20 shrink-0"></div>
+          <div className="h-28 shrink-0"></div>
 
           {/* Checkout Button - Fixed Bottom */}
-          <div className="fixed bottom-16 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-[#E0E6DF] p-4 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-30 pb-[env(safe-area-inset-bottom)]">
+          <div className="fixed bottom-16 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-[#E0E6DF] p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-30">
             <button 
               onClick={handlePlaceOrder}
               disabled={orderStatus === 'submitting' || items.length === 0}
