@@ -4,10 +4,12 @@ import { Server } from 'socket.io';
 
 const router = express.Router();
 
-// Get all orders (for admin dashboard)
+// Get all orders (for admin dashboard, or filtered by table number)
 router.get('/', async (req, res) => {
   try {
-    const orders = await Order.find().sort({ createdAt: -1 });
+    const { tableNumber } = req.query;
+    const filter = tableNumber ? { tableNumber: String(tableNumber) } : {};
+    const orders = await Order.find(filter).sort({ createdAt: -1 });
     res.json(orders);
   } catch (err: any) {
     res.status(500).json({ message: err.message });
