@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { Settings, Percent, KeyRound, Plus, Trash2, Edit2, X, Check } from 'lucide-react';
+import { useDialog } from '@/components/admin/DialogProvider';
 
 interface Promotion {
   _id: string;
@@ -313,6 +314,7 @@ function GeneralSettingsTab() {
 // ----------------------------------------------------------------------
 function PromotionsTab() {
   const { token } = useAuthStore();
+  const { confirm } = useDialog();
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -337,7 +339,7 @@ function PromotionsTab() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this promotion?')) return;
+    if (!(await confirm({ message: 'Are you sure you want to delete this promotion?', type: 'warning' }))) return;
     try {
       const res = await fetch(`http://localhost:5000/api/promotions/${id}`, {
         method: 'DELETE',
@@ -461,6 +463,7 @@ function PromotionsTab() {
 // ----------------------------------------------------------------------
 function PromotionModal({ promo, onClose, onSuccess }: { promo: Promotion | null, onClose: () => void, onSuccess: () => void }) {
   const { token } = useAuthStore();
+  const { alert } = useDialog();
   const [loading, setLoading] = useState(false);
   
   const [formData, setFormData] = useState({
@@ -493,7 +496,7 @@ function PromotionModal({ promo, onClose, onSuccess }: { promo: Promotion | null
       if (res.ok) {
         onSuccess();
       } else {
-        alert('Failed to save promotion');
+        await alert({ message: 'Failed to save promotion', type: 'error' });
       }
     } catch (err) {
       console.error(err);

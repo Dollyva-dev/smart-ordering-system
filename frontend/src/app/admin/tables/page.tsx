@@ -15,6 +15,7 @@ import {
   PenTool,
   Edit2
 } from 'lucide-react';
+import { useDialog } from '@/components/admin/DialogProvider';
 
 // --- Types ---
 type ElementType = 'table-round' | 'table-square' | 'wall';
@@ -46,6 +47,7 @@ export default function AdminFloorPlanPage() {
   const [isLoading, setIsLoading] = useState(true);
   
   // Floor Plan Data State
+  const { confirm, alert } = useDialog();
   const [floors, setFloors] = useState<FloorPlanData[]>([]);
   const [activeFloorId, setActiveFloorId] = useState<string | null>(null);
 
@@ -281,10 +283,10 @@ export default function AdminFloorPlanPage() {
   const handleDeleteFloor = async () => {
     if (!activeFloorId) return;
     if (floors.length === 1) {
-      alert("You must have at least one floor plan.");
+      await alert({ message: "You must have at least one floor plan.", type: 'warning' });
       return;
     }
-    if (!confirm(`Are you sure you want to delete "${activeFloor?.name}"? All tables on it will also be deleted from the system.`)) return;
+    if (!(await confirm({ message: `Are you sure you want to delete "${activeFloor?.name}"? All tables on it will also be deleted from the system.`, type: 'warning' }))) return;
     
     try {
       const res = await fetch(`http://localhost:5000/api/floorplan/${activeFloorId}`, {
