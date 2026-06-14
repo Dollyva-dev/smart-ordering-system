@@ -1,0 +1,69 @@
+Created At: 2026-06-14T17:53:04Z
+Completed At: 2026-06-14T17:53:04Z
+File Path: `file:///d:/DOLLYVA/smart-ordering-system/frontend/src/app/admin/menu/page.tsx`
+Total Lines: 1750
+Total Bytes: 85055
+Showing lines 1690 to 1750
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+1690:             {/* Drawer Footer (Sticky Actions) */}
+1691:             <div className="p-4 border-t border-zinc-200 bg-zinc-50 flex gap-3 mt-auto">
+1692:               {isPromoFormVisible ? (
+1693:                 <>
+1694:                   <button 
+1695:                     onClick={() => {
+1696:                       setIsPromoFormVisible(false);
+1697:                       setEditingPromoId(null);
+1698:                       resetPromoFormState();
+1699:                     }}
+1700:                     className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-zinc-600 bg-white border border-zinc-200 hover:bg-zinc-50 transition-colors"
+1701:                   >
+1702:                     Cancel
+1703:                   </button>
+1704:                   <button 
+1705:                     onClick={handleSavePromoForm}
+1706:                     disabled={savingPromos}
+1707:                     className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-zinc-900 hover:bg-zinc-800 shadow-sm transition-colors disabled:opacity-50"
+1708:                   >
+1709:                     {savingPromos ? 'Saving...' : 'Save Promotion'}
+1710:                   </button>
+1711:                 </>
+1712:               ) : activePromoTab === 'sliders' ? (
+1713:                 <>
+1714:                   <div className="flex-1"></div>
+1715:                   <button 
+1716:                     type="button"
+1717:                     onClick={handleSaveSliders}
+1718:                     disabled={savingPromos}
+1719:                     className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-zinc-900 hover:bg-zinc-800 transition-colors shadow-sm disabled:opacity-50"
+1720:                   >
+1721:                     {savingPromos ? 'Saving...' : 'Save Sliders'}
+1722:                   </button>
+1723:                 </>
+1724:               ) : (
+1725:                 <div className="flex-1"></div>
+1726:               )}
+1727:             </div>
+1728:           </div>
+1729:         </div>
+1730:       )}
+1731: 
+1732:       {/* Adding a global class for the drawer scrollbar to keep it minimal */}
+1733:       <style dangerouslySetInnerHTML={{ __html: `
+1734:         .custom-scrollbar::-webkit-scrollbar {
+1735:           width: 4px;
+1736:         }
+1737:         .custom-scrollbar::-webkit-scrollbar-track {
+1738:           background: transparent;
+1739:         }
+1740:         .custom-scrollbar::-webkit-scrollbar-thumb {
+1741:           background: #e4e4e7;
+1742:           border-radius: 4px;
+1743:         }
+1744:         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+1745:           background: #d4d4d8;
+1746:         }
+1747:       `}} />
+1748:     </div>
+1749:   );
+1750: }
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.

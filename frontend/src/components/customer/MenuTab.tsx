@@ -9,11 +9,12 @@ interface MenuTabProps {
   setSearchQuery: (query: string) => void;
   activeCategory: string;
   displayItems: MenuItem[];
-  featuredItems: MenuItem[];
+  featuredItems: any[];
   getCartItemQuantity: (itemId: string) => number;
   getSingleCartItem: (itemId: string) => { cartId: string; quantity: number } | null;
   handleAddClick: (item: MenuItem) => void;
   handleOpenProduct: (item: MenuItem) => void;
+  handleOpenPromo?: (promo: any) => void;
   updateQuantity: (cartId: string, quantity: number) => void;
   removeItem: (cartId: string) => void;
   
@@ -39,6 +40,7 @@ export function MenuTab({
   getSingleCartItem,
   handleAddClick,
   handleOpenProduct,
+  handleOpenPromo,
   updateQuantity,
   removeItem,
   
@@ -160,8 +162,10 @@ export function MenuTab({
               className="flex overflow-x-auto snap-x snap-mandatory scrollbar-none rounded-2xl shadow-md bg-zinc-200"
             >
               {sortedFeatured.map((item) => {
-                const discount = item.discountPercent || 0;
-                const finalPrice = discount > 0 ? item.price * (1 - discount / 100) : item.price;
+                const isPromo = 'promoType' in item;
+                const discount = isPromo ? 0 : (item.discountPercent || 0);
+                const finalPrice = isPromo ? 0 : (discount > 0 ? item.price * (1 - discount / 100) : item.price);
+                
                 return (
                   <div 
                     key={item._id} 
@@ -170,7 +174,7 @@ export function MenuTab({
                     {/* Background Image */}
                     <div 
                       className="absolute inset-0 cursor-pointer"
-                      onClick={() => handleOpenProduct(item)}
+                      onClick={() => isPromo && handleOpenPromo ? handleOpenPromo(item) : !isPromo && handleOpenProduct(item)}
                     >
                       {item.imageUrl ? (
                         <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
@@ -189,16 +193,28 @@ export function MenuTab({
                         </span>
                       )}
                       <div className="flex justify-between items-end gap-2 pointer-events-auto">
-                        <div className="flex-1 cursor-pointer" onClick={() => handleOpenProduct(item)}>
+                        <div className="flex-1 cursor-pointer" onClick={() => isPromo && handleOpenPromo ? handleOpenPromo(item) : !isPromo && handleOpenProduct(item)}>
                           <h2 className="text-xl font-extrabold leading-tight shadow-sm drop-shadow-md">{item.name}</h2>
                           <p className="text-white/90 text-xs mt-1 font-medium line-clamp-1 drop-shadow-sm">{item.description}</p>
                         </div>
-                        <button 
-                          onClick={() => handleAddWithDiscount(item)}
-                          className="bg-white text-[#2E6F40] text-sm font-black px-4 py-2 rounded-xl shadow-lg shrink-0 hover:scale-105 transition-transform"
-                        >
-                          + ${finalPrice.toFixed(2)}
-                        </button>
+                        
+                        {isPromo ? (
+                          <button 
+                            onClick={() => {
+                                if (handleOpenPromo) handleOpenPromo(item);
+                            }}
+                            className="bg-amber-500 text-white text-sm font-black px-4 py-2 rounded-xl shadow-lg shrink-0 hover:scale-105 transition-transform"
+                          >
+                            View Deal
+                          </button>
+                        ) : (
+                          <button 
+                            onClick={() => handleAddWithDiscount(item)}
+                            className="bg-white text-[#2E6F40] text-sm font-black px-4 py-2 rounded-xl shadow-lg shrink-0 hover:scale-105 transition-transform"
+                          >
+                            + ${finalPrice.toFixed(2)}
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>

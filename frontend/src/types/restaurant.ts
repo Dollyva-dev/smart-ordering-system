@@ -49,3 +49,22 @@ export interface Order {
   status: 'pending' | 'preparing' | 'served' | 'cancelled';
   createdAt: string;
 }
+
+export interface Promotion {
+  _id: string;
+  name: string;
+  description?: string;
+  imageUrl?: string;
+  promoType: 'discount' | 'bogo' | 'combo' | 'spend_more';
+  discountType: 'PERCENTAGE' | 'FLAT';
+  discountValue: number;
+  minOrderValue: number;
+  applicableItemIds: any[];
+  requiredItemIds: any[];
+  startDate?: string;
+  endDate?: string;
+  isActive: boolean;
+  isFeatured?: boolean;
+  featuredPosition?: number;
+  featuredBadge?: string;
+}
