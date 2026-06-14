@@ -31,6 +31,7 @@ export function useDialog() {
 interface DialogState extends DialogOptions {
   id: string;
   dialogType: DialogType;
+  isClosing?: boolean;
   resolve: (value: boolean | void | PromiseLike<boolean | void>) => void;
 }
 
@@ -68,23 +69,60 @@ export function DialogProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const handleClose = (id: string, result: boolean) => {
-    setDialogs((prev) => prev.filter((d) => d.id !== id));
-    const dialog = dialogs.find((d) => d.id === id);
-    if (dialog) {
-      dialog.resolve(result);
-    }
+    setDialogs((prev) => {
+      const dialog = prev.find((d) => d.id === id);
+      if (dialog && !dialog.isClosing) {
+        dialog.resolve(result); // Resolve immediately so caller isn't blocked by animation
+        return prev.map((d) => d.id === id ? { ...d, isClosing: true } : d);
+      }
+      return prev;
+    });
+
+    setTimeout(() => {
+      setDialogs((prev) => prev.filter((d) => d.id !== id));
+    }, 250); // match animation duration
   };
 
   return (
     <DialogContext.Provider value={{ alert, confirm }}>
       {children}
+      <style>{`
+        @keyframes dialogFadeIn {
+          from { opacity: 0; transform: scale(0.95) translateY(10px); }
+          to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        @keyframes dialogFadeOut {
+          from { opacity: 1; transform: scale(1) translateY(0); }
+          to { opacity: 0; transform: scale(0.95) translateY(10px); }
+        }
+        @keyframes overlayFadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes overlayFadeOut {
+          from { opacity: 1; }
+          to { opacity: 0; }
+        }
+        .dialog-animate {
+          animation: dialogFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .dialog-animate-out {
+          animation: dialogFadeOut 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .overlay-animate {
+          animation: overlayFadeIn 0.3s ease-out forwards;
+        }
+        .overlay-animate-out {
+          animation: overlayFadeOut 0.25s ease-out forwards;
+        }
+      `}</style>
       {dialogs.map((dialog) => (
         <div key={dialog.id} className="fixed inset-0 z-[200] flex items-center justify-center p-4">
           <div 
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity" 
+            className={`fixed inset-0 bg-black/40 backdrop-blur-sm ${dialog.isClosing ? 'overlay-animate-out' : 'overlay-animate'}`} 
             onClick={() => dialog.dialogType === 'alert' && handleClose(dialog.id, true)}
           />
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden z-10 animate-in fade-in zoom-in-95 duration-200">
+          <div className={`bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden z-10 ${dialog.isClosing ? 'dialog-animate-out' : 'dialog-animate'}`}>
             <div className="p-6">
               <div className="flex items-start gap-4">
                 <div className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
