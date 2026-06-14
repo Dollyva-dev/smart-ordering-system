@@ -11,8 +11,11 @@ import {
   Search, 
   ChevronDown,
   Layers,
-  Edit2
+  Edit2,
+  MoveUp,
+  MoveDown
 } from 'lucide-react';
+import { useDialog } from '@/components/admin/DialogProvider';
 
 interface CustomizationOption {
   name: string;
@@ -95,6 +98,7 @@ const RESTAURANT_CATEGORIES = [
 ];
 
 export default function AdminMenuPage() {
+  const { confirm, alert } = useDialog();
   const [items, setItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -402,7 +406,7 @@ export default function AdminMenuPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this item?')) return;
+    if (!(await confirm('Are you sure you want to delete this item?'))) return;
     try {
       await fetch(`http://localhost:5000/api/menu/${id}`, { method: 'DELETE' });
       fetchItems();
@@ -501,7 +505,7 @@ export default function AdminMenuPage() {
       await Promise.all(promises);
       fetchItems();
       fetchPromotions();
-      alert('Sliders saved successfully!');
+      await alert({ message: 'Sliders saved successfully!', type: 'success' });
     } catch (err) {
       console.error(err);
     } finally {
@@ -510,8 +514,8 @@ export default function AdminMenuPage() {
   };
 
   const handleSavePromoForm = async () => {
-    if (!promoName) return alert('Name is required');
-    if (!promoDiscountValue) return alert('Discount value is required');
+    if (!promoName) return await alert({ message: 'Name is required', type: 'error' });
+    if (!promoDiscountValue) return await alert({ message: 'Discount value is required', type: 'error' });
     
     setSavingPromos(true);
     try {
@@ -572,7 +576,7 @@ export default function AdminMenuPage() {
   };
 
   const handleDeletePromo = async (id: string) => {
-    if (!confirm('Delete this promotion?')) return;
+    if (!(await confirm({ message: 'Delete this promotion?', type: 'warning' }))) return;
     try {
       const token = localStorage.getItem('token');
       await fetch(`http://localhost:5000/api/promotions/${id}`, {
