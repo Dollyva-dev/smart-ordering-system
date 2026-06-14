@@ -26,6 +26,15 @@ export interface IMenuItem extends Document {
   featuredBadge?: string;
   discountPercent?: number;
   dietaryPreferences?: string[];
+  prepTime?: number;
+  calories?: number;
+  spicinessLevel?: number;
+  allergens?: string[];
+  isAlcoholic?: boolean;
+  abv?: number;
+  isSeasonal?: boolean;
+  seasonalAvailability?: string;
+  note?: string;
 }
 
 const CustomizationOptionSchema = new Schema({
@@ -54,7 +63,16 @@ const MenuItemSchema: Schema = new Schema(
     featuredPosition: { type: Number, default: null },
     featuredBadge: { type: String, default: null },
     discountPercent: { type: Number, default: 0 },
-    dietaryPreferences: { type: [String], default: [] }
+    dietaryPreferences: { type: [String], default: [] },
+    prepTime: { type: Number, default: null },
+    calories: { type: Number, default: null },
+    spicinessLevel: { type: Number, default: 0, min: 0, max: 3 },
+    allergens: { type: [String], default: [] },
+    isAlcoholic: { type: Boolean, default: false },
+    abv: { type: Number, default: null },
+    isSeasonal: { type: Boolean, default: false },
+    seasonalAvailability: { type: String, default: null },
+    note: { type: String, default: null }
   },
   { timestamps: true }
 );

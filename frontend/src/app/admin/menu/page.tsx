@@ -41,6 +41,34 @@ interface MenuItem {
   featuredBadge?: string;
   discountPercent?: number;
   dietaryPreferences?: string[];
+  prepTime?: number;
+  calories?: number;
+  spicinessLevel?: number;
+  allergens?: string[];
+  isAlcoholic?: boolean;
+  abv?: number;
+  isSeasonal?: boolean;
+  seasonalAvailability?: string;
+  note?: string;
+}
+
+export interface Promotion {
+  _id: string;
+  name: string;
+  description?: string;
+  imageUrl?: string;
+  promoType: 'discount' | 'bogo' | 'combo' | 'spend_more';
+  discountType: 'PERCENTAGE' | 'FLAT';
+  discountValue: number;
+  minOrderValue: number;
+  applicableItemIds: any[];
+  requiredItemIds: any[];
+  startDate?: string;
+  endDate?: string;
+  isActive: boolean;
+  isFeatured?: boolean;
+  featuredPosition?: number;
+  featuredBadge?: string;
 }
 
 interface FormOption {
@@ -90,6 +118,16 @@ export default function AdminMenuPage() {
         options: g.options.map(o => ({ name: o.name, price: o.price.toString() }))
       })) || []);
       setDietaryPreferences(item.dietaryPreferences || []);
+      setPrepTime(item.prepTime?.toString() || '');
+      setCalories(item.calories?.toString() || '');
+      setSpicinessLevel(item.spicinessLevel || 1);
+      setIsSpicyToggle((item.spicinessLevel || 0) > 0);
+      setAllergens(item.allergens || []);
+      setIsAlcoholic(item.isAlcoholic || false);
+      setAbv(item.abv?.toString() || '');
+      setIsSeasonal(item.isSeasonal || false);
+      setSeasonalAvailability(item.seasonalAvailability || '');
+      setNote(item.note || '');
     } else {
       setEditingItemId(null);
       resetFormState();
@@ -113,18 +151,49 @@ export default function AdminMenuPage() {
   const [price, setPrice] = useState('');
   const [category, setCategory] = useState('');
   
-  // Dietary State
+  // Dietary & Extra State
   const [dietaryPreferences, setDietaryPreferences] = useState<string[]>([]);
+  const [prepTime, setPrepTime] = useState('');
+  const [calories, setCalories] = useState('');
+  const [spicinessLevel, setSpicinessLevel] = useState(1);
+  const [allergens, setAllergens] = useState<string[]>([]);
+  
+  // Advanced Feature Toggles
+  const [isSpicyToggle, setIsSpicyToggle] = useState(false);
+  const [isAlcoholic, setIsAlcoholic] = useState(false);
+  const [abv, setAbv] = useState('');
+  const [isSeasonal, setIsSeasonal] = useState(false);
+  const [seasonalAvailability, setSeasonalAvailability] = useState('');
+  const [note, setNote] = useState('');
   
   // Promo Drawer State
+  const [isPromoDrawerMounted, setIsPromoDrawerMounted] = useState(false);
   const [isPromoDrawerVisible, setIsPromoDrawerVisible] = useState(false);
-  const [promoItemsState, setPromoItemsState] = useState<Record<string, {
+  const [activePromoTab, setActivePromoTab] = useState<'promotions' | 'sliders'>('promotions');
+  const [promotions, setPromotions] = useState<Promotion[]>([]);
+  const [sliderItemsState, setSliderItemsState] = useState<Record<string, {
     isFeatured: boolean;
-    featuredPosition: number;
-    featuredBadge: string;
-    discountPercent: number;
+    featuredPosition?: number;
+    featuredBadge?: string;
+    type?: 'item' | 'promo';
   }>>({});
   const [savingPromos, setSavingPromos] = useState(false);
+  
+  // Standalone Promotion Form State
+  const [editingPromoId, setEditingPromoId] = useState<string | null>(null);
+  const [isPromoFormVisible, setIsPromoFormVisible] = useState(false);
+  const [promoName, setPromoName] = useState('');
+  const [promoDesc, setPromoDesc] = useState('');
+  const [promoImgUrl, setPromoImgUrl] = useState('');
+  const [promoType, setPromoType] = useState<'discount' | 'bogo' | 'combo' | 'spend_more'>('discount');
+  const [promoDiscountType, setPromoDiscountType] = useState<'PERCENTAGE' | 'FLAT'>('PERCENTAGE');
+  const [promoDiscountValue, setPromoDiscountValue] = useState('');
+  const [promoMinOrderValue, setPromoMinOrderValue] = useState('');
+  const [promoApplicableItems, setPromoApplicableItems] = useState<string[]>([]);
+  const [promoRequiredItems, setPromoRequiredItems] = useState<string[]>([]);
+  const [promoIsActive, setPromoIsActive] = useState(true);
+  const [promoImageFile, setPromoImageFile] = useState<File | null>(null);
+  const [promoImagePreview, setPromoImagePreview] = useState('');
   
   // Dropdown Category State
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -141,6 +210,7 @@ export default function AdminMenuPage() {
 
   useEffect(() => {
     fetchItems();
+    fetchPromotions();
   }, []);
 
   // Prevent background scroll when drawer is open
@@ -162,6 +232,16 @@ export default function AdminMenuPage() {
     } catch (err) {
       console.error(err);
       setLoading(false);
+    }
+  };
+
+  const fetchPromotions = async () => {
+    try {
+      const res = await fetch('http://localhost:5000/api/promotions');
+      const data = await res.json();
+      setPromotions(data);
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -256,6 +336,16 @@ export default function AdminMenuPage() {
     setCustomizationGroups([]);
     setDropdownOpen(false);
     setDietaryPreferences([]);
+    setPrepTime('');
+    setCalories('');
+    setSpicinessLevel(1);
+    setAllergens([]);
+    setIsSpicyToggle(false);
+    setIsAlcoholic(false);
+    setAbv('');
+    setIsSeasonal(false);
+    setSeasonalAvailability('');
+    setNote('');
   };
 
   const handleAddItem = async (e: React.FormEvent) => {
@@ -290,7 +380,16 @@ export default function AdminMenuPage() {
           category,
           imageUrl: finalImageUrl,
           customizationGroups: formattedGroups,
-          dietaryPreferences
+          dietaryPreferences,
+          prepTime: prepTime ? parseInt(prepTime) : null,
+          calories: calories ? parseInt(calories) : null,
+          spicinessLevel: isSpicyToggle ? spicinessLevel : 0,
+          allergens,
+          isAlcoholic,
+          abv: isAlcoholic && abv ? parseFloat(abv) : null,
+          isSeasonal,
+          seasonalAvailability: isSeasonal ? seasonalAvailability : null,
+          note
         })
       });
       if (res.ok) {
@@ -332,39 +431,191 @@ export default function AdminMenuPage() {
         isFeatured: item.isFeatured || false,
         featuredPosition: item.featuredPosition || 1,
         featuredBadge: item.featuredBadge || 'Sale',
-        discountPercent: item.discountPercent || 0
+        type: 'item'
       };
     });
-    setPromoItemsState(initialState);
-    setIsPromoDrawerVisible(true);
+    promotions.forEach(promo => {
+      initialState[promo._id] = {
+        isFeatured: promo.isFeatured || false,
+        featuredPosition: promo.featuredPosition || 1,
+        featuredBadge: promo.featuredBadge || 'Promo',
+        type: 'promo'
+      };
+    });
+    setSliderItemsState(initialState);
+    setActivePromoTab('promotions');
+    setIsPromoDrawerMounted(true);
+    setTimeout(() => setIsPromoDrawerVisible(true), 10);
   };
 
-  const handleSavePromos = async () => {
+  const closePromoDrawer = () => {
+    setIsPromoDrawerVisible(false);
+    setTimeout(() => {
+      setIsPromoDrawerMounted(false);
+      // Reset forms if needed
+    }, 300);
+  };
+
+  const handleSaveSliders = async () => {
     setSavingPromos(true);
     try {
-      const promises = items.map(item => {
-        const promoState = promoItemsState[item._id];
-        if (!promoState) return Promise.resolve();
-        // Only patch if something changed (simplification: we just patch all for now)
-        return fetch(`http://localhost:5000/api/menu/${item._id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            isFeatured: promoState.isFeatured,
-            featuredPosition: promoState.isFeatured ? promoState.featuredPosition : null,
-            featuredBadge: promoState.isFeatured ? promoState.featuredBadge : null,
-            discountPercent: promoState.discountPercent || 0
+      const promises: Promise<any>[] = [];
+      
+      items.forEach(item => {
+        const sliderState = sliderItemsState[item._id];
+        if (!sliderState) return;
+        promises.push(
+          fetch(`http://localhost:5000/api/menu/${item._id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              isFeatured: sliderState.isFeatured,
+              featuredPosition: sliderState.isFeatured ? sliderState.featuredPosition : null,
+              featuredBadge: sliderState.isFeatured ? sliderState.featuredBadge : null
+            })
           })
-        });
+        );
       });
+
+      promotions.forEach(promo => {
+        const sliderState = sliderItemsState[promo._id];
+        if (!sliderState) return;
+        const token = localStorage.getItem('token');
+        // Actually our backend route for promotions doesn't have PATCH, we use PUT.
+        // We will just PUT the entire updated object with the slider fields, or we can use PUT.
+        // Wait, PUT requires all fields. Let's send everything from the promo object + slider fields.
+        const payload = { ...promo, 
+          isFeatured: sliderState.isFeatured,
+          featuredPosition: sliderState.isFeatured ? sliderState.featuredPosition : null,
+          featuredBadge: sliderState.isFeatured ? sliderState.featuredBadge : null
+        };
+        promises.push(
+          fetch(`http://localhost:5000/api/promotions/${promo._id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          })
+        );
+      });
+
       await Promise.all(promises);
-      setIsPromoDrawerVisible(false);
       fetchItems();
+      fetchPromotions();
+      alert('Sliders saved successfully!');
     } catch (err) {
       console.error(err);
     } finally {
       setSavingPromos(false);
     }
+  };
+
+  const handleSavePromoForm = async () => {
+    if (!promoName) return alert('Name is required');
+    if (!promoDiscountValue) return alert('Discount value is required');
+    
+    setSavingPromos(true);
+    try {
+      let finalImageUrl = promoImgUrl;
+      if (promoImageFile) {
+        const formData = new FormData();
+        formData.append('image', promoImageFile);
+        const uploadRes = await fetch('http://localhost:5000/api/menu/upload', {
+          method: 'POST',
+          body: formData
+        });
+        if (uploadRes.ok) {
+          const data = await uploadRes.json();
+          finalImageUrl = data.imageUrl;
+        }
+      }
+
+      const payload = {
+        name: promoName,
+        description: promoDesc,
+        imageUrl: finalImageUrl,
+        promoType: promoType,
+        discountType: promoDiscountType,
+        discountValue: parseFloat(promoDiscountValue) || 0,
+        minOrderValue: promoType === 'spend_more' ? parseFloat(promoMinOrderValue) || 0 : 0,
+        applicableItemIds: promoApplicableItems,
+        requiredItemIds: promoType === 'combo' ? promoRequiredItems : [],
+        isActive: promoIsActive
+      };
+
+      const url = editingPromoId 
+        ? `http://localhost:5000/api/promotions/${editingPromoId}`
+        : `http://localhost:5000/api/promotions`;
+      const method = editingPromoId ? 'PUT' : 'POST';
+
+      const token = localStorage.getItem('token');
+      const res = await fetch(url, {
+        method,
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify(payload)
+      });
+      
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || 'Failed to save promotion');
+      }
+      
+      setIsPromoFormVisible(false);
+      fetchPromotions();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSavingPromos(false);
+    }
+  };
+
+  const handleDeletePromo = async (id: string) => {
+    if (!confirm('Delete this promotion?')) return;
+    try {
+      const token = localStorage.getItem('token');
+      await fetch(`http://localhost:5000/api/promotions/${id}`, {
+        method: 'DELETE',
+        headers: { ...(token ? { 'Authorization': `Bearer ${token}` } : {}) }
+      });
+      fetchPromotions();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const openPromoForm = (promo?: Promotion) => {
+    if (promo) {
+      setEditingPromoId(promo._id);
+      setPromoName(promo.name);
+      setPromoDesc(promo.description || '');
+      setPromoImgUrl(promo.imageUrl || '');
+      setPromoType(promo.promoType);
+      setPromoDiscountType(promo.discountType);
+      setPromoDiscountValue(promo.discountValue.toString());
+      setPromoMinOrderValue(promo.minOrderValue ? promo.minOrderValue.toString() : '');
+      setPromoApplicableItems(promo.applicableItemIds.map(i => i._id || i));
+      setPromoRequiredItems(promo.requiredItemIds.map(i => i._id || i));
+      setPromoIsActive(promo.isActive);
+      setPromoImageFile(null);
+      setPromoImagePreview('');
+    } else {
+      setEditingPromoId(null);
+      setPromoName('');
+      setPromoDesc('');
+      setPromoImgUrl('');
+      setPromoType('discount');
+      setPromoDiscountType('PERCENTAGE');
+      setPromoDiscountValue('');
+      setPromoMinOrderValue('');
+      setPromoApplicableItems([]);
+      setPromoRequiredItems([]);
+      setPromoIsActive(true);
+      setPromoImageFile(null);
+      setPromoImagePreview('');
+    }
+    setIsPromoFormVisible(true);
   };
 
   return (
@@ -491,7 +742,7 @@ export default function AdminMenuPage() {
         >
           {/* Drawer Panel */}
           <div 
-            className={`w-full max-w-md bg-white h-full shadow-2xl flex flex-col transform transition-transform duration-300 border-l border-zinc-200 ${isDrawerVisible ? 'translate-x-0' : 'translate-x-full'}`}
+            className={`w-full max-w-2xl bg-white h-full shadow-2xl flex flex-col transform transition-transform duration-300 border-l border-zinc-200 ${isDrawerVisible ? 'translate-x-0' : 'translate-x-full'}`}
             onClick={e => e.stopPropagation()}
           >
             {/* Drawer Header */}
@@ -646,26 +897,173 @@ export default function AdminMenuPage() {
 
                 <hr className="border-zinc-100" />
 
+                {/* Additional Info Section */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-zinc-700 mb-1.5">Prep Time (mins)</label>
+                    <input 
+                      type="number" 
+                      min="0"
+                      value={prepTime}
+                      onChange={e => setPrepTime(e.target.value)}
+                      placeholder="e.g. 15"
+                      className="w-full bg-white text-zinc-900 border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 outline-none transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-zinc-700 mb-1.5">Calories (kcal)</label>
+                    <input 
+                      type="number" 
+                      min="0"
+                      value={calories}
+                      onChange={e => setCalories(e.target.value)}
+                      placeholder="e.g. 450"
+                      className="w-full bg-white text-zinc-900 border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 outline-none transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* Advanced Properties Section */}
+                <div className="space-y-4">
+                  {/* Spiciness Toggle */}
+                  <div className="bg-zinc-50 border border-zinc-200 rounded-lg p-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-zinc-900">Is this item spicy?</span>
+                      <button 
+                        type="button"
+                        onClick={() => setIsSpicyToggle(!isSpicyToggle)}
+                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${isSpicyToggle ? 'bg-red-500' : 'bg-zinc-300'}`}
+                      >
+                        <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${isSpicyToggle ? 'translate-x-4' : 'translate-x-1'}`} />
+                      </button>
+                    </div>
+                    {isSpicyToggle && (
+                      <div className="mt-3 pt-3 border-t border-zinc-200 flex gap-2">
+                        {[1, 2, 3].map(level => (
+                          <button
+                            key={level}
+                            type="button"
+                            onClick={() => setSpicinessLevel(level)}
+                            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all border flex-1 flex justify-center ${
+                              spicinessLevel === level 
+                                ? 'bg-red-50 border-red-200 text-red-600 shadow-sm' 
+                                : 'bg-white border-zinc-200 text-zinc-400 hover:bg-zinc-50'
+                            }`}
+                          >
+                            {Array(level).fill('🌶️').join('')}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Alcoholic Toggle */}
+                  <div className="bg-zinc-50 border border-zinc-200 rounded-lg p-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-zinc-900">Does this contain alcohol?</span>
+                      <button 
+                        type="button"
+                        onClick={() => setIsAlcoholic(!isAlcoholic)}
+                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${isAlcoholic ? 'bg-zinc-900' : 'bg-zinc-300'}`}
+                      >
+                        <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${isAlcoholic ? 'translate-x-4' : 'translate-x-1'}`} />
+                      </button>
+                    </div>
+                    {isAlcoholic && (
+                      <div className="mt-3 pt-3 border-t border-zinc-200">
+                        <label className="block text-xs font-semibold text-zinc-700 mb-1.5">ABV Percentage (%)</label>
+                        <input 
+                          type="number" 
+                          min="0"
+                          step="0.1"
+                          value={abv}
+                          onChange={e => setAbv(e.target.value)}
+                          placeholder="e.g. 5.5"
+                          className="w-full bg-white text-zinc-900 border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 outline-none transition-all"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Seasonal Toggle */}
+                  <div className="bg-zinc-50 border border-zinc-200 rounded-lg p-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-zinc-900">Is this a seasonal item?</span>
+                      <button 
+                        type="button"
+                        onClick={() => setIsSeasonal(!isSeasonal)}
+                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${isSeasonal ? 'bg-zinc-900' : 'bg-zinc-300'}`}
+                      >
+                        <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${isSeasonal ? 'translate-x-4' : 'translate-x-1'}`} />
+                      </button>
+                    </div>
+                    {isSeasonal && (
+                      <div className="mt-3 pt-3 border-t border-zinc-200">
+                        <label className="block text-xs font-semibold text-zinc-700 mb-1.5">Seasonal Description</label>
+                        <input 
+                          type="text" 
+                          value={seasonalAvailability}
+                          onChange={e => setSeasonalAvailability(e.target.value)}
+                          placeholder="e.g. Summer Special"
+                          className="w-full bg-white text-zinc-900 border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 outline-none transition-all"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <hr className="border-zinc-100" />
+
                 {/* Dietary Preferences Section */}
                 <div>
                   <label className="block text-xs font-semibold text-zinc-700 mb-2">Dietary Preferences</label>
                   <div className="flex flex-wrap gap-2">
-                    {["Vegetarian", "Vegan", "Gluten-Free", "Pescatarian"].map(diet => (
-                      <label key={diet} className="flex items-center gap-2 text-xs font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 px-3 py-1.5 rounded-md cursor-pointer hover:bg-zinc-100 transition-colors">
-                        <input 
-                          type="checkbox" 
-                          checked={dietaryPreferences.includes(diet)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setDietaryPreferences([...dietaryPreferences, diet]);
-                            } else {
-                              setDietaryPreferences(dietaryPreferences.filter(d => d !== diet));
-                            }
-                          }}
-                          className="accent-zinc-900 w-3.5 h-3.5 rounded-sm"
-                        />
+                    {["Vegetarian", "Vegan", "Gluten-Free", "Pescatarian", "Halal"].map(diet => (
+                      <button 
+                        key={diet}
+                        type="button"
+                        onClick={() => {
+                          if (dietaryPreferences.includes(diet)) {
+                            setDietaryPreferences(dietaryPreferences.filter(d => d !== diet));
+                          } else {
+                            setDietaryPreferences([...dietaryPreferences, diet]);
+                          }
+                        }}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
+                          dietaryPreferences.includes(diet)
+                            ? 'bg-zinc-900 border-zinc-900 text-white shadow-sm'
+                            : 'bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-50'
+                        }`}
+                      >
                         {diet}
-                      </label>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Allergens Section */}
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-700 mb-2">Contains Allergens</label>
+                  <div className="flex flex-wrap gap-2">
+                    {["Dairy", "Nuts", "Soy", "Eggs", "Shellfish", "Wheat"].map(allergen => (
+                      <button 
+                        key={allergen}
+                        type="button"
+                        onClick={() => {
+                          if (allergens.includes(allergen)) {
+                            setAllergens(allergens.filter(a => a !== allergen));
+                          } else {
+                            setAllergens([...allergens, allergen]);
+                          }
+                        }}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
+                          allergens.includes(allergen)
+                            ? 'bg-red-50 border-red-200 text-red-700 shadow-sm'
+                            : 'bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-50'
+                        }`}
+                      >
+                        {allergen}
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -674,111 +1072,145 @@ export default function AdminMenuPage() {
 
                 {/* Customizations */}
                 <div>
-                  <div className="flex justify-between items-center mb-3">
-                    <label className="block text-xs font-semibold text-zinc-700">Customizations</label>
+                  <div className="flex justify-between items-center mb-4">
+                    <label className="block text-sm font-bold text-zinc-900">Customization Groups</label>
                     <button 
                       type="button" 
                       onClick={handleAddGroup}
-                      className="text-xs font-medium text-zinc-900 bg-zinc-100 hover:bg-zinc-200 px-2 py-1 rounded-md transition-colors flex items-center gap-1"
+                      className="text-xs font-semibold text-zinc-700 bg-white border border-zinc-200 hover:bg-zinc-50 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 shadow-sm"
                     >
-                      <Plus size={12} /> Group
+                      <Plus size={14} /> Add Group
                     </button>
                   </div>
 
-                  <div className="space-y-4">
+                  <div className="space-y-5">
                     {customizationGroups.length === 0 && (
-                      <p className="text-xs text-zinc-500 text-center py-4 bg-zinc-50 rounded-lg border border-dashed border-zinc-200">
-                        No customizations added.
-                      </p>
+                      <div className="py-8 bg-zinc-50 rounded-xl border border-dashed border-zinc-200 flex flex-col items-center justify-center text-center">
+                        <div className="w-10 h-10 bg-white border border-zinc-200 rounded-full shadow-sm flex items-center justify-center mb-3 text-zinc-400">
+                          <Plus size={20} />
+                        </div>
+                        <p className="text-sm font-semibold text-zinc-900">No Customizations</p>
+                        <p className="text-xs text-zinc-500 mt-1 max-w-[200px]">Add groups like "Size" or "Toppings" to give customers choices.</p>
+                      </div>
                     )}
                     
                     {customizationGroups.map((group, gIdx) => (
-                      <div key={gIdx} className="bg-white border border-zinc-200 rounded-lg p-3 shadow-sm relative group/group">
-                        <button 
-                          type="button" 
-                          onClick={() => handleRemoveGroup(gIdx)}
-                          className="absolute top-3 right-3 text-zinc-400 hover:text-red-500 transition-colors bg-white"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-
-                        <div className="pr-6 mb-3">
-                          <input 
-                            type="text" 
-                            required 
-                            placeholder="Group Name (e.g. Size, Toppings)"
-                            value={group.name}
-                            onChange={e => handleGroupChange(gIdx, { name: e.target.value })}
-                            className="w-full bg-transparent text-zinc-900 font-semibold border-b border-dashed border-zinc-300 pb-1 text-sm focus:border-zinc-900 outline-none placeholder:font-normal placeholder:text-zinc-400"
-                          />
-                        </div>
-
-                        <div className="flex items-center gap-4 mb-3 bg-zinc-50 p-2 rounded-md border border-zinc-100">
-                          <label className="flex items-center gap-2 text-xs font-medium text-zinc-700 cursor-pointer">
+                      <div key={gIdx} className="bg-white border border-zinc-200 rounded-xl overflow-hidden shadow-sm">
+                        {/* Group Header */}
+                        <div className="bg-zinc-50 p-4 border-b border-zinc-200 flex flex-col gap-3">
+                          <div className="flex justify-between items-start">
                             <input 
-                              type="checkbox" 
-                              checked={group.required}
-                              onChange={e => handleGroupChange(gIdx, { required: e.target.checked })}
-                              className="accent-zinc-900 w-3.5 h-3.5 rounded-sm"
+                              type="text" 
+                              required 
+                              placeholder="Group Name (e.g. Size, Toppings)"
+                              value={group.name}
+                              onChange={e => handleGroupChange(gIdx, { name: e.target.value })}
+                              className="w-2/3 bg-white text-zinc-900 font-bold border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 outline-none transition-all placeholder:font-normal placeholder:text-zinc-400"
                             />
-                            Required
-                          </label>
-                          <div className="w-px h-4 bg-zinc-200"></div>
-                          <div className="flex items-center gap-2 text-xs font-medium text-zinc-700">
-                            Max Select:
-                            <input 
-                              type="number" 
-                              min={1} 
-                              value={group.maxSelect}
-                              onChange={e => handleGroupChange(gIdx, { maxSelect: parseInt(e.target.value) || 1 })}
-                              className="w-12 bg-white border border-zinc-200 rounded text-center py-0.5"
-                            />
+                            <button 
+                              type="button" 
+                              onClick={() => handleRemoveGroup(gIdx)}
+                              className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-colors bg-white border border-zinc-200 shadow-sm"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+
+                          <div className="flex items-center gap-4">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <div className="relative flex items-center">
+                                <input 
+                                  type="checkbox"
+                                  className="sr-only"
+                                  checked={group.required}
+                                  onChange={e => handleGroupChange(gIdx, { required: e.target.checked })}
+                                />
+                                <div className={`w-9 h-5 rounded-full transition-colors ${group.required ? 'bg-zinc-900' : 'bg-zinc-300'}`}></div>
+                                <div className={`absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full transition-transform ${group.required ? 'translate-x-4' : ''}`}></div>
+                              </div>
+                              <span className="text-xs font-semibold text-zinc-700">Required Selection</span>
+                            </label>
+                            
+                            <div className="w-px h-4 bg-zinc-300"></div>
+                            
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-semibold text-zinc-700">Max Select:</span>
+                              <input 
+                                type="number" 
+                                min={1} 
+                                value={group.maxSelect}
+                                onChange={e => handleGroupChange(gIdx, { maxSelect: parseInt(e.target.value) || 1 })}
+                                className="w-14 bg-white border border-zinc-200 rounded-lg px-2 py-1 text-sm text-center focus:border-zinc-900 outline-none"
+                              />
+                            </div>
                           </div>
                         </div>
 
-                        <div className="space-y-2 pl-2 border-l-2 border-zinc-100">
+                        {/* Options */}
+                        <div className="p-4 space-y-3 bg-white">
                           {group.options.map((option, oIdx) => (
-                            <div key={oIdx} className="flex gap-2 items-center">
+                            <div key={oIdx} className="flex gap-3 items-center group/option">
+                              <div className="w-6 flex justify-center text-zinc-300">
+                                <div className="w-1.5 h-1.5 rounded-full bg-zinc-300"></div>
+                              </div>
                               <input 
                                 type="text" 
                                 required 
-                                placeholder="Option" 
+                                placeholder="Option Name" 
                                 value={option.name}
                                 onChange={e => handleOptionChange(gIdx, oIdx, { name: e.target.value })}
-                                className="flex-1 bg-white text-zinc-900 border border-zinc-200 rounded-md px-2 py-1.5 text-xs focus:border-zinc-900 outline-none"
+                                className="flex-1 bg-white text-zinc-900 border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:border-zinc-900 outline-none"
                               />
-                              <div className="relative w-20">
-                                <span className="absolute left-2 top-1.5 text-xs text-zinc-400">$</span>
+                              <div className="relative w-28">
+                                <span className="absolute left-3 top-2.5 text-sm text-zinc-400">$</span>
                                 <input 
                                   type="number" 
                                   step="0.01" 
                                   placeholder="0.00" 
                                   value={option.price}
                                   onChange={e => handleOptionChange(gIdx, oIdx, { price: e.target.value })}
-                                  className="w-full bg-white text-zinc-900 border border-zinc-200 rounded-md pl-5 pr-2 py-1.5 text-xs focus:border-zinc-900 outline-none"
+                                  className="w-full bg-white text-zinc-900 border border-zinc-200 rounded-lg pl-7 pr-3 py-2 text-sm focus:border-zinc-900 outline-none"
                                 />
                               </div>
                               <button 
                                 type="button" 
                                 onClick={() => handleRemoveOption(gIdx, oIdx)}
                                 disabled={group.options.length <= 1}
-                                className="text-zinc-400 hover:text-red-500 disabled:opacity-30 disabled:cursor-not-allowed"
+                                className="w-8 h-8 flex items-center justify-center rounded-lg text-zinc-400 hover:text-red-500 hover:bg-red-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                               >
-                                <X size={14} />
+                                <X size={16} />
                               </button>
                             </div>
                           ))}
-                          <button 
-                            type="button" 
-                            onClick={() => handleAddOption(gIdx)}
-                            className="text-[11px] font-medium text-zinc-500 hover:text-zinc-900 transition-colors flex items-center gap-1 mt-1"
-                          >
-                            <Plus size={10} /> Add Option
-                          </button>
+                          
+                          <div className="pl-9 pr-11 mt-3">
+                            <button 
+                              type="button" 
+                              onClick={() => handleAddOption(gIdx)}
+                              className="w-full py-2 border border-dashed border-zinc-300 rounded-lg text-xs font-semibold text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 hover:border-zinc-400 transition-all flex items-center justify-center gap-1.5"
+                            >
+                              <Plus size={14} /> Add Option
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}
                   </div>
+                </div>
+
+                <hr className="border-zinc-100" />
+
+                {/* Internal Note Section */}
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-700 mb-1.5">Internal Note (Optional)</label>
+                  <textarea 
+                    value={note}
+                    onChange={e => setNote(e.target.value)}
+                    rows={2}
+                    placeholder="e.g. Takes 20 minutes to prepare, ask for extra cheese."
+                    className="w-full bg-white text-zinc-900 border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 outline-none transition-all placeholder:text-zinc-400 resize-none"
+                  />
+                  <p className="text-[10px] text-zinc-400 mt-1">This note will be visible to staff only.</p>
                 </div>
               </form>
             </div>
@@ -806,136 +1238,473 @@ export default function AdminMenuPage() {
       )}
 
       {/* Promo Drawer */}
-      {isPromoDrawerVisible && (
+      {isPromoDrawerMounted && (
         <>
           <div 
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 transition-opacity"
-            onClick={() => setIsPromoDrawerVisible(false)}
+            className={`fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] transition-opacity duration-300 ${isPromoDrawerVisible ? 'opacity-100' : 'opacity-0'}`}
+            onClick={() => closePromoDrawer()}
           />
-          <div className="fixed inset-y-0 right-0 w-full max-w-2xl bg-white shadow-2xl z-50 flex flex-col transform transition-transform border-l border-zinc-200">
+          <div className={`fixed inset-y-0 right-0 w-full max-w-2xl bg-white shadow-2xl z-[100] flex flex-col transform transition-transform duration-300 border-l border-zinc-200 ${isPromoDrawerVisible ? 'translate-x-0' : 'translate-x-full'}`}>
             
             {/* Drawer Header */}
-            <div className="flex justify-between items-center px-6 py-5 border-b border-zinc-100 bg-amber-50/30">
-              <div>
-                <h2 className="text-lg font-bold text-zinc-900 flex items-center gap-2">
-                  <span className="text-amber-500">★</span> Promotions & Sliders
-                </h2>
-                <p className="text-xs text-zinc-500 mt-1">Manage discounts and featured items across your entire menu</p>
+            <div className="flex flex-col border-b border-zinc-100 bg-zinc-50/50">
+              <div className="flex justify-between items-center px-6 py-5">
+                <div>
+                  <h2 className="text-lg font-bold text-zinc-900 flex items-center gap-2">
+                    <span className="text-zinc-400">🏷️</span> Promotions & Sliders
+                  </h2>
+                  <p className="text-xs text-zinc-500 mt-1">Manage marketing campaigns and featured menu items</p>
+                </div>
+                <button 
+                  onClick={() => closePromoDrawer()}
+                  className="p-2 hover:bg-zinc-200 rounded-full transition-colors text-zinc-400 hover:text-zinc-600 bg-white border border-zinc-200 shadow-sm"
+                >
+                  <X size={16} />
+                </button>
               </div>
-              <button 
-                onClick={() => setIsPromoDrawerVisible(false)}
-                className="p-2 hover:bg-zinc-100 rounded-full transition-colors text-zinc-400 hover:text-zinc-600"
-              >
-                <X size={20} />
-              </button>
+              <div className="flex px-6 gap-6 border-t border-zinc-200 bg-white">
+                <button 
+                  onClick={() => setActivePromoTab('promotions')}
+                  className={`py-3 text-sm font-semibold border-b-2 transition-colors ${activePromoTab === 'promotions' ? 'border-zinc-900 text-zinc-900' : 'border-transparent text-zinc-500 hover:text-zinc-700'}`}
+                >
+                  Promotions
+                </button>
+                <button 
+                  onClick={() => setActivePromoTab('sliders')}
+                  className={`py-3 text-sm font-semibold border-b-2 transition-colors ${activePromoTab === 'sliders' ? 'border-zinc-900 text-zinc-900' : 'border-transparent text-zinc-500 hover:text-zinc-700'}`}
+                >
+                  Featured Sliders
+                </button>
+              </div>
             </div>
 
             {/* Drawer Body */}
-            <div className="flex-1 overflow-y-auto p-6 bg-zinc-50/50 custom-scrollbar space-y-4">
-              {items.map(item => {
-                const promo = promoItemsState[item._id];
-                if (!promo) return null;
-                return (
-                  <div key={item._id} className="bg-white border border-zinc-200 rounded-xl p-4 flex gap-4 items-start shadow-sm hover:border-amber-200 transition-colors">
-                    <img src={item.imageUrl || ''} alt={item.name} className="w-16 h-16 object-cover rounded-lg bg-zinc-100" />
-                    <div className="flex-1 space-y-3">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="font-semibold text-zinc-900 text-sm">{item.name}</h3>
-                          <p className="text-xs text-zinc-500">${item.price.toFixed(2)}</p>
-                        </div>
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <span className="text-xs font-semibold text-zinc-700">In Slider</span>
-                          <div className="relative inline-flex items-center">
-                            <input 
-                              type="checkbox" 
-                              className="sr-only peer" 
-                              checked={promo.isFeatured}
-                              onChange={(e) => setPromoItemsState(prev => ({
-                                ...prev, 
-                                [item._id]: { ...prev[item._id], isFeatured: e.target.checked }
-                              }))}
-                            />
-                            <div className="w-8 h-4 bg-zinc-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-amber-500"></div>
+            <div className="flex-1 overflow-y-auto p-6 bg-zinc-50/30 custom-scrollbar relative">
+              {activePromoTab === 'sliders' && (
+                <div className="space-y-8">
+                  <div>
+                    <h3 className="text-sm font-bold text-zinc-900 mb-4 border-b border-zinc-200 pb-2">Active Promotions</h3>
+                    <div className="space-y-4">
+                      {promotions.map(promo => {
+                        const slider = sliderItemsState[promo._id];
+                        if (!slider || slider.type !== 'promo') return null;
+                        return (
+                          <div key={promo._id} className="bg-white border border-zinc-200 rounded-xl p-4 flex gap-4 items-center shadow-sm hover:border-zinc-300 transition-colors">
+                            <div className="w-16 h-16 rounded-lg bg-zinc-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                              {promo.imageUrl ? (
+                                <img src={promo.imageUrl} alt={promo.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <span className="text-2xl">🏷️</span>
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-zinc-900 text-sm">{promo.name}</h3>
+                              <p className="text-xs text-zinc-500">{promo.promoType.toUpperCase()}</p>
+                            </div>
+                            <div className="flex flex-col items-end gap-3">
+                              <div className="flex items-center gap-3">
+                                <span className="text-xs font-semibold text-zinc-700">Show in Slider?</span>
+                                <button 
+                                  type="button"
+                                  onClick={() => setSliderItemsState(prev => ({ ...prev, [promo._id]: { ...prev[promo._id], isFeatured: !slider.isFeatured } }))}
+                                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${slider.isFeatured ? 'bg-zinc-900' : 'bg-zinc-300'}`}
+                                >
+                                  <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${slider.isFeatured ? 'translate-x-4' : 'translate-x-1'}`} />
+                                </button>
+                              </div>
+                              {slider.isFeatured && (
+                                <div className="flex gap-2">
+                                  <select 
+                                    value={slider.featuredPosition}
+                                    onChange={(e) => setSliderItemsState(prev => ({ ...prev, [promo._id]: { ...prev[promo._id], featuredPosition: parseInt(e.target.value) } }))}
+                                    className="bg-white border border-zinc-200 rounded-md px-2 py-1 text-xs focus:ring-1 focus:ring-zinc-900 outline-none"
+                                  >
+                                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => <option key={n} value={n}>Pos {n}</option>)}
+                                  </select>
+                                  <select 
+                                    value={slider.featuredBadge}
+                                    onChange={(e) => setSliderItemsState(prev => ({ ...prev, [promo._id]: { ...prev[promo._id], featuredBadge: e.target.value } }))}
+                                    className="bg-white border border-zinc-200 rounded-md px-2 py-1 text-xs focus:ring-1 focus:ring-zinc-900 outline-none"
+                                  >
+                                    <option value="Promo">Promo</option>
+                                    <option value="Hot Deal">Hot Deal</option>
+                                    <option value="Limited">Limited</option>
+                                  </select>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        </label>
-                      </div>
-                      
-                      <div className="grid grid-cols-3 gap-3">
-                        <div>
-                          <label className="block text-[10px] font-semibold text-zinc-500 uppercase tracking-wider mb-1">Discount %</label>
-                          <input 
-                            type="number"
-                            min="0"
-                            max="100"
-                            value={promo.discountPercent || ''}
-                            onChange={(e) => setPromoItemsState(prev => ({
-                              ...prev, 
-                              [item._id]: { ...prev[item._id], discountPercent: parseInt(e.target.value) || 0 }
-                            }))}
-                            className="w-full bg-zinc-50 border border-zinc-200 rounded-md px-2 py-1.5 text-xs focus:ring-1 focus:ring-amber-500 outline-none"
-                            placeholder="0"
-                          />
-                        </div>
-                        {promo.isFeatured && (
-                          <>
-                            <div>
-                              <label className="block text-[10px] font-semibold text-zinc-500 uppercase tracking-wider mb-1">Position</label>
-                              <select 
-                                value={promo.featuredPosition}
-                                onChange={(e) => setPromoItemsState(prev => ({
-                                  ...prev, 
-                                  [item._id]: { ...prev[item._id], featuredPosition: parseInt(e.target.value) }
-                                }))}
-                                className="w-full bg-zinc-50 border border-zinc-200 rounded-md px-2 py-1.5 text-xs focus:ring-1 focus:ring-amber-500 outline-none"
-                              >
-                                {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n}</option>)}
-                              </select>
-                            </div>
-                            <div>
-                              <label className="block text-[10px] font-semibold text-zinc-500 uppercase tracking-wider mb-1">Badge</label>
-                              <select 
-                                value={promo.featuredBadge}
-                                onChange={(e) => setPromoItemsState(prev => ({
-                                  ...prev, 
-                                  [item._id]: { ...prev[item._id], featuredBadge: e.target.value }
-                                }))}
-                                className="w-full bg-zinc-50 border border-zinc-200 rounded-md px-2 py-1.5 text-xs focus:ring-1 focus:ring-amber-500 outline-none"
-                              >
-                                <option value="Sale">Sale</option>
-                                <option value="Combo">Combo</option>
-                                <option value="Free Item">Free Item</option>
-                                <option value="Chef's Special">Chef's Special</option>
-                                <option value="Popular">Popular</option>
-                              </select>
-                            </div>
-                          </>
-                        )}
-                      </div>
+                        );
+                      })}
                     </div>
                   </div>
-                );
-              })}
+
+                  <div>
+                    <h3 className="text-sm font-bold text-zinc-900 mb-4 border-b border-zinc-200 pb-2">Menu Items</h3>
+                    <div className="space-y-4">
+                      {items.map(item => {
+                        const slider = sliderItemsState[item._id];
+                        if (!slider || slider.type !== 'item') return null;
+                        return (
+                          <div key={item._id} className="bg-white border border-zinc-200 rounded-xl p-4 flex gap-4 items-center shadow-sm hover:border-zinc-300 transition-colors">
+                            <img src={item.imageUrl || ''} alt={item.name} className="w-16 h-16 object-cover rounded-lg bg-zinc-100" />
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-zinc-900 text-sm">{item.name}</h3>
+                              <p className="text-xs text-zinc-500">${item.price.toFixed(2)}</p>
+                            </div>
+                            <div className="flex flex-col items-end gap-3">
+                              <div className="flex items-center gap-3">
+                                <span className="text-xs font-semibold text-zinc-700">Show in Slider?</span>
+                                <button 
+                                  type="button"
+                                  onClick={() => setSliderItemsState(prev => ({ ...prev, [item._id]: { ...prev[item._id], isFeatured: !slider.isFeatured } }))}
+                                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${slider.isFeatured ? 'bg-zinc-900' : 'bg-zinc-300'}`}
+                                >
+                                  <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${slider.isFeatured ? 'translate-x-4' : 'translate-x-1'}`} />
+                                </button>
+                              </div>
+                              {slider.isFeatured && (
+                                <div className="flex gap-2">
+                                  <select 
+                                    value={slider.featuredPosition}
+                                    onChange={(e) => setSliderItemsState(prev => ({ ...prev, [item._id]: { ...prev[item._id], featuredPosition: parseInt(e.target.value) } }))}
+                                    className="bg-white border border-zinc-200 rounded-md px-2 py-1 text-xs focus:ring-1 focus:ring-zinc-900 outline-none"
+                                  >
+                                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => <option key={n} value={n}>Pos {n}</option>)}
+                                  </select>
+                                  <select 
+                                    value={slider.featuredBadge}
+                                    onChange={(e) => setSliderItemsState(prev => ({ ...prev, [item._id]: { ...prev[item._id], featuredBadge: e.target.value } }))}
+                                    className="bg-white border border-zinc-200 rounded-md px-2 py-1 text-xs focus:ring-1 focus:ring-zinc-900 outline-none"
+                                  >
+                                    <option value="Sale">Sale</option>
+                                    <option value="Combo">Combo</option>
+                                    <option value="Popular">Popular</option>
+                                  </select>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activePromoTab === 'promotions' && !isPromoFormVisible && (
+                <div className="space-y-6">
+                  {/* Grid Layout for Promotions */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button 
+                      onClick={() => openPromoForm()}
+                      className="w-full h-full min-h-[140px] border-2 border-dashed border-zinc-300 rounded-2xl text-zinc-500 hover:text-zinc-900 hover:border-zinc-900 hover:bg-zinc-50 transition-all font-semibold flex flex-col items-center justify-center gap-2"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-zinc-100 flex items-center justify-center mb-1">
+                        <span className="text-xl">+</span>
+                      </div>
+                      Create Promotion
+                    </button>
+
+                    {promotions.map(promo => (
+                      <div key={promo._id} className="bg-white border border-zinc-200 rounded-2xl overflow-hidden shadow-sm hover:border-zinc-300 transition-all group flex flex-col">
+                        <div className="h-28 bg-zinc-100 relative">
+                          {promo.imageUrl ? (
+                            <img src={promo.imageUrl} alt={promo.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-zinc-300">
+                              <span className="text-4xl">🏷️</span>
+                            </div>
+                          )}
+                          <div className="absolute top-3 left-3 flex gap-1.5">
+                            <span className="bg-white/90 backdrop-blur-sm text-zinc-900 text-[10px] px-2 py-1 rounded-md font-bold tracking-wide uppercase shadow-sm">
+                              {promo.promoType}
+                            </span>
+                            {!promo.isActive && (
+                              <span className="bg-red-500/90 backdrop-blur-sm text-white text-[10px] px-2 py-1 rounded-md font-bold tracking-wide uppercase shadow-sm">
+                                Inactive
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="p-4 flex-1 flex flex-col justify-between">
+                          <div>
+                            <h3 className="font-bold text-zinc-900 leading-tight">{promo.name}</h3>
+                            <p className="text-xs text-zinc-500 mt-1 line-clamp-2">{promo.description || 'No description provided.'}</p>
+                          </div>
+                          <div className="flex justify-between items-end mt-4">
+                            <span className="text-sm font-black text-amber-600 bg-amber-50 px-2.5 py-1 rounded-lg">
+                              {promo.discountType === 'PERCENTAGE' ? `${promo.discountValue}% OFF` : `$${promo.discountValue} OFF`}
+                            </span>
+                            <div className="flex gap-1">
+                              <button onClick={() => openPromoForm(promo)} className="p-2 text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 rounded-lg transition-colors"><Edit2 size={16} /></button>
+                              <button onClick={() => handleDeletePromo(promo._id)} className="p-2 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"><X size={16} /></button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {activePromoTab === 'promotions' && isPromoFormVisible && (
+                <div className="bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm space-y-6">
+                  <div className="flex justify-between items-center pb-4 border-b border-zinc-100">
+                    <h3 className="font-bold text-zinc-900">{editingPromoId ? 'Edit Promotion' : 'Create Promotion'}</h3>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-zinc-600">Active</span>
+                      <button 
+                        type="button"
+                        onClick={() => setPromoIsActive(!promoIsActive)}
+                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${promoIsActive ? 'bg-zinc-900' : 'bg-zinc-300'}`}
+                      >
+                        <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${promoIsActive ? 'translate-x-4' : 'translate-x-1'}`} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-5">
+                    
+                    <div className="space-y-5">
+                      <div>
+                        <label className="block text-sm font-semibold text-zinc-800 mb-1">Promotion Name</label>
+                        <input 
+                          type="text"
+                          value={promoName}
+                          onChange={e => setPromoName(e.target.value)}
+                          placeholder="e.g. Summer Combo Deal"
+                          className="w-full bg-white border border-zinc-200 rounded-lg px-4 py-2.5 text-sm focus:ring-1 focus:ring-zinc-900 outline-none transition-shadow"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-semibold text-zinc-800 mb-1">Description <span className="text-zinc-400 font-normal">(Optional)</span></label>
+                        <textarea 
+                          value={promoDesc}
+                          onChange={e => setPromoDesc(e.target.value)}
+                          placeholder="Short description of this promo..."
+                          className="w-full bg-white border border-zinc-200 rounded-lg px-4 py-2.5 text-sm focus:ring-1 focus:ring-zinc-900 outline-none resize-none h-20 transition-shadow"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-semibold text-zinc-800 mb-2">Promotional Image</label>
+                        <div className="flex gap-4 items-center">
+                          <div className="w-20 h-20 bg-zinc-50 border border-zinc-200 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center">
+                            {(promoImagePreview || promoImgUrl) ? (
+                              <img src={promoImagePreview || promoImgUrl} alt="Preview" className="w-full h-full object-cover" />
+                            ) : (
+                              <span className="text-2xl opacity-30">🖼️</span>
+                            )}
+                          </div>
+                          <input 
+                            type="file" 
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                setPromoImageFile(file);
+                                setPromoImagePreview(URL.createObjectURL(file));
+                              }
+                            }}
+                            className="text-sm text-zinc-600 file:mr-4 file:py-2 file:px-5 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-zinc-100 file:text-zinc-700 hover:file:bg-zinc-200 transition-colors cursor-pointer"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="pt-4 border-t border-zinc-100 grid grid-cols-2 gap-4">
+                        <div className="col-span-2 sm:col-span-1">
+                          <label className="block text-sm font-semibold text-zinc-800 mb-1">Deal Type</label>
+                          <select 
+                            value={promoType}
+                            onChange={e => {
+                              setPromoType(e.target.value as any);
+                              setPromoRequiredItems([]);
+                              setPromoApplicableItems([]);
+                            }}
+                            className="w-full bg-white border border-zinc-200 rounded-lg px-4 py-2.5 text-sm focus:ring-1 focus:ring-zinc-900 outline-none transition-shadow"
+                          >
+                            <option value="discount">Standard Discount</option>
+                            <option value="bogo">Buy One Get One</option>
+                            <option value="combo">Combo Deal</option>
+                            <option value="spend_more">Spend More</option>
+                          </select>
+                        </div>
+
+                        {promoType === 'spend_more' ? (
+                          <div className="col-span-2 sm:col-span-1">
+                            <label className="block text-sm font-semibold text-zinc-800 mb-1">Minimum Spend</label>
+                            <div className="relative">
+                              <span className="absolute left-4 top-2.5 text-sm text-zinc-500 font-medium">$</span>
+                              <input 
+                                type="number"
+                                value={promoMinOrderValue}
+                                onChange={e => setPromoMinOrderValue(e.target.value)}
+                                placeholder="0.00"
+                                className="w-full bg-white border border-zinc-200 rounded-lg pl-8 pr-4 py-2.5 text-sm focus:ring-1 focus:ring-zinc-900 outline-none transition-shadow"
+                              />
+                            </div>
+                          </div>
+                        ) : null}
+
+                        <div className="col-span-2 sm:col-span-1 flex gap-2">
+                          <div className="flex-1">
+                            <label className="block text-sm font-semibold text-zinc-800 mb-1">Discount</label>
+                            <input 
+                              type="number"
+                              value={promoDiscountValue}
+                              onChange={e => setPromoDiscountValue(e.target.value)}
+                              placeholder="Value"
+                              className="w-full bg-white border border-zinc-200 rounded-lg px-4 py-2.5 text-sm focus:ring-1 focus:ring-zinc-900 outline-none transition-shadow"
+                            />
+                          </div>
+                          <div className="w-24">
+                            <label className="block text-sm font-semibold text-zinc-800 mb-1">Unit</label>
+                            <select 
+                              value={promoDiscountType}
+                              onChange={e => setPromoDiscountType(e.target.value as any)}
+                              className="w-full bg-white border border-zinc-200 rounded-lg px-3 py-2.5 text-sm focus:ring-1 focus:ring-zinc-900 outline-none transition-shadow"
+                            >
+                              <option value="PERCENTAGE">%</option>
+                              <option value="FLAT">$</option>
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+
+                      {promoType === 'bogo' && (
+                        <div className="pt-4 border-t border-zinc-100">
+                          <label className="block text-sm font-semibold text-zinc-800 mb-2">Select BOGO Item</label>
+                          <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto custom-scrollbar bg-white p-1">
+                            {items.map(item => {
+                              const isSelected = promoApplicableItems.includes(item._id);
+                              return (
+                                <button
+                                  key={item._id}
+                                  type="button"
+                                  onClick={() => {
+                                    if (isSelected) setPromoApplicableItems(prev => prev.filter(id => id !== item._id));
+                                    else setPromoApplicableItems(prev => [...prev, item._id]);
+                                  }}
+                                  className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-all ${
+                                    isSelected 
+                                      ? 'bg-zinc-900 border-zinc-900 text-white shadow-sm' 
+                                      : 'bg-white border-zinc-200 text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50'
+                                  }`}
+                                >
+                                  {isSelected && <CheckCircle2 size={14} />}
+                                  {item.name}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {promoType === 'combo' && (
+                        <div className="pt-4 border-t border-zinc-100">
+                          <label className="block text-sm font-semibold text-zinc-800 mb-2">Select Combo Items</label>
+                          <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto custom-scrollbar bg-white p-1">
+                            {items.map(item => {
+                              const isSelected = promoRequiredItems.includes(item._id);
+                              return (
+                                <button
+                                  key={item._id}
+                                  type="button"
+                                  onClick={() => {
+                                    if (isSelected) setPromoRequiredItems(prev => prev.filter(id => id !== item._id));
+                                    else setPromoRequiredItems(prev => [...prev, item._id]);
+                                  }}
+                                  className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-all ${
+                                    isSelected 
+                                      ? 'bg-zinc-900 border-zinc-900 text-white shadow-sm' 
+                                      : 'bg-white border-zinc-200 text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50'
+                                  }`}
+                                >
+                                  {isSelected && <CheckCircle2 size={14} />}
+                                  {item.name}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {promoType === 'discount' && (
+                        <div className="pt-4 border-t border-zinc-100">
+                          <label className="block text-sm font-semibold text-zinc-800 mb-2">Applicable Items</label>
+                          <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto custom-scrollbar bg-white p-1">
+                            {items.map(item => {
+                              const isSelected = promoApplicableItems.includes(item._id);
+                              return (
+                                <button
+                                  key={item._id}
+                                  type="button"
+                                  onClick={() => {
+                                    if (isSelected) setPromoApplicableItems(prev => prev.filter(id => id !== item._id));
+                                    else setPromoApplicableItems(prev => [...prev, item._id]);
+                                  }}
+                                  className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-all ${
+                                    isSelected 
+                                      ? 'bg-zinc-900 border-zinc-900 text-white shadow-sm' 
+                                      : 'bg-white border-zinc-200 text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50'
+                                  }`}
+                                >
+                                  {isSelected && <CheckCircle2 size={14} />}
+                                  {item.name}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                    </div>
+
+                  </div>
+
+                  <div className="flex gap-3 pt-4 border-t border-zinc-100">
+                    <button 
+                      onClick={() => setIsPromoFormVisible(false)}
+                      className="flex-1 py-2.5 rounded-lg text-sm font-semibold text-zinc-600 bg-white border border-zinc-200 hover:bg-zinc-50 transition-colors"
+                    >
+                      Cancel Form
+                    </button>
+                    <button 
+                      onClick={handleSavePromoForm}
+                      disabled={savingPromos}
+                      className="flex-1 py-2.5 rounded-lg text-sm font-semibold text-white bg-zinc-900 hover:bg-zinc-800 shadow-sm transition-colors disabled:opacity-50"
+                    >
+                      {savingPromos ? 'Saving...' : 'Save Promotion'}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Drawer Footer */}
-            <div className="p-6 border-t border-zinc-100 bg-white flex justify-end gap-3">
-              <button 
-                type="button" 
-                onClick={() => setIsPromoDrawerVisible(false)}
-                className="px-5 py-2.5 rounded-lg text-sm font-semibold text-zinc-600 hover:bg-zinc-100 transition-colors"
-              >
-                Cancel
-              </button>
-              <button 
-                type="button"
-                onClick={handleSavePromos}
-                disabled={savingPromos}
-                className="px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-amber-500 hover:bg-amber-600 transition-colors shadow-sm disabled:opacity-50"
-              >
-                {savingPromos ? 'Saving...' : 'Save Promotions'}
-              </button>
-            </div>
+            {/* Drawer Footer (Only visible if not in form) */}
+            {!isPromoFormVisible && (
+              <div className="p-6 border-t border-zinc-100 bg-white flex justify-end gap-3">
+                <button 
+                  type="button" 
+                  onClick={() => closePromoDrawer()}
+                  className="px-5 py-2.5 rounded-lg text-sm font-semibold text-zinc-600 bg-white border border-zinc-200 hover:bg-zinc-50 transition-colors"
+                >
+                  Close Drawer
+                </button>
+                {activePromoTab === 'sliders' && (
+                  <button 
+                    type="button"
+                    onClick={handleSaveSliders}
+                    disabled={savingPromos}
+                    className="px-5 py-2.5 rounded-lg text-sm font-semibold text-white bg-zinc-900 hover:bg-zinc-800 transition-colors shadow-sm disabled:opacity-50"
+                  >
+                    {savingPromos ? 'Saving...' : 'Save Sliders'}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </>
       )}

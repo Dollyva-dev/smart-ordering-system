@@ -4,13 +4,14 @@ import { useEffect, useState, use, useRef } from 'react';
 import { useCartStore, SelectedCustomizationOption } from '@/store/cartStore';
 import { io, Socket } from 'socket.io-client';
 
-import { MenuItem, Order, CustomizationGroup, CustomizationOption } from '@/types/restaurant';
+import { MenuItem, Order, CustomizationGroup, CustomizationOption, Promotion } from '@/types/restaurant';
 import { Header } from '@/components/customer/Header';
 import { CategoryPills } from '@/components/customer/CategoryPills';
 import { MenuTab } from '@/components/customer/MenuTab';
 import { CartTab } from '@/components/customer/CartTab';
 import { OrdersTab } from '@/components/customer/OrdersTab';
 import { ProductView } from '@/components/customer/ProductView';
+import { PromoView } from '@/components/customer/PromoView';
 import { WaiterModal } from '@/components/customer/WaiterModal';
 import { BottomNav } from '@/components/customer/BottomNav';
 
@@ -29,12 +30,14 @@ const RESTAURANT_CATEGORIES = [
 
 export default function TableMenuPage({ params }: { params: Promise<{ id: string }> }) {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [loading, setLoading] = useState(true);
   const { items, addItem, updateQuantity, removeItem, getTotal, clearCart } = useCartStore();
   const [orderStatus, setOrderStatus] = useState<'success' | 'error' | 'submitting' | null>(null);
   
   // Product View state
   const [activeProductItem, setActiveProductItem] = useState<MenuItem | null>(null);
+  const [activePromo, setActivePromo] = useState<Promotion | null>(null);
   const [selectedOptions, setSelectedOptions] = useState<{ [groupName: string]: SelectedCustomizationOption[] }>({});
 
   // Navigation and Filter state
@@ -82,6 +85,12 @@ export default function TableMenuPage({ params }: { params: Promise<{ id: string
         console.error('Error fetching menu:', err);
         setLoading(false);
       });
+
+    // Fetch promotions
+    fetch(`${BACKEND_URL}/api/promotions`)
+      .then((res) => res.json())
+      .then((data) => setPromotions(data))
+      .catch((err) => console.error('Error fetching promotions:', err));
 
     // 2. Fetch table orders
     fetch(`${BACKEND_URL}/api/orders?tableNumber=${tableId}`)
@@ -372,11 +381,12 @@ export default function TableMenuPage({ params }: { params: Promise<{ id: string
               setSearchQuery={setSearchQuery}
               activeCategory={activeCategory}
               displayItems={displayItems}
-              featuredItems={menuItems.filter(i => i.isFeatured)}
+              featuredItems={[...menuItems.filter(i => i.isFeatured), ...promotions.filter(p => p.isFeatured)]}
               getCartItemQuantity={getCartItemQuantity}
               getSingleCartItem={getSingleCartItem}
               handleAddClick={handleAddClick}
               handleOpenProduct={handleOpenProduct}
+              handleOpenPromo={(promo) => setActivePromo(promo)}
               updateQuantity={updateQuantity}
               removeItem={removeItem}
               // Pass category stuff down to MenuTab
@@ -426,6 +436,14 @@ export default function TableMenuPage({ params }: { params: Promise<{ id: string
             isAddDisabled={isAddDisabled}
             handleConfirmAdd={handleConfirmAdd}
             getCustomizationPrice={getCustomizationPrice}
+          />
+        )}
+
+        {activePromo && (
+          <PromoView
+            promo={activePromo}
+            onClose={() => setActivePromo(null)}
+            menuItems={menuItems}
           />
         )}
 

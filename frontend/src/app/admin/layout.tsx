@@ -36,8 +36,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const navItems = [
     { name: 'Live Orders', path: '/admin/orders', icon: LayoutDashboard },
     { name: 'Menu Management', path: '/admin/menu', icon: UtensilsCrossed },
-    { name: 'Table Management', path: '/admin/tables', icon: MonitorSmartphone },
-    { name: 'Settings', path: '/admin/settings', icon: Settings }
+    { name: 'Table Management', path: '/admin/tables', icon: MonitorSmartphone }
   ];
 
   const handleLogout = () => {
@@ -109,7 +108,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </nav>
 
         {/* Footer Area / Logout */}
-        <div className="p-4 border-t border-zinc-100 m-2">
+        <div className="p-4 border-t border-zinc-100 m-2 space-y-1.5">
+          <Link 
+            href="/admin/settings"
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 group ${
+              pathname.startsWith('/admin/settings') 
+                ? 'bg-zinc-900 text-white shadow-md shadow-zinc-900/10' 
+                : 'text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900'
+            }`}
+          >
+            <Settings 
+              size={18} 
+              strokeWidth={pathname.startsWith('/admin/settings') ? 2.5 : 2} 
+              className={`transition-colors ${pathname.startsWith('/admin/settings') ? 'text-white' : 'text-zinc-400 group-hover:text-zinc-900'}`} 
+            />
+            Settings
+          </Link>
           <button 
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-zinc-500 hover:bg-red-50 hover:text-red-600 transition-all duration-200 group cursor-pointer"
